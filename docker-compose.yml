@@ -1,0 +1,88 @@
+services:
+  inventory-db:
+    image: postgres:16-alpine
+    container_name: inventory-db
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB_INVENTORY}
+      - POSTGRES_USER=${POSTGRES_USER_INVENTORY}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_INVENTORY}
+    volumes:
+      - inventory-db-data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+  billing-db:
+    image: postgres:16-alpine
+    container_name: billing-db
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB_BILLING}
+      - POSTGRES_USER=${POSTGRES_USER_BILLING}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_BILLING}
+    volumes:
+      - billing-db-data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+  rabbit-queue:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbit-queue
+    restart: always
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_DEFAULT_VHOST=${RABBITMQ_DEFAULT_VHOST}
+    networks:
+      - backend-network
+
+  inventory-app:
+    build: ./srcs/inventory-app
+    image: inventory-app
+    container_name: inventory-app
+    restart: always
+    depends_on:
+      - inventory-db
+    env_file:
+      - .env
+    networks:
+      - backend-network
+
+  billing-app:
+    build: ./srcs/billing-app
+    image: billing-app
+    container_name: billing-app
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - billing-db
+      - rabbit-queue
+    networks:
+      - backend-network
+
+  api-gateway-app:
+    build: ./srcs/api-gateway-app
+    image: api-gateway-app
+    container_name: api-gateway-app
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${API_GATEWAY_PORT}:3000"
+    volumes:
+      - api-gateway-logs:/var/log/api-gateway
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  inventory-db-data:
+  billing-db-data:
+  api-gateway-logs: 
