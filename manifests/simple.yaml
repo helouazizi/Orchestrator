@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: nginx-html
-          image: nginxdemos/hello:plain # A lightweight, fun Nginx image that shows pod info
+          image: nginxdemos/hello:plain-text # A lightweight, fun Nginx image that shows pod info
           ports:
             - containerPort: 80
 ---
