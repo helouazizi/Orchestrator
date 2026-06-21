@@ -1,0 +1,23 @@
+# Environment variables (Sensitive)
+.env
+
+# Logs
+*.log
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environments
+.venv/
+venv/
+envs/
+
+# OS and System files
+.DS_Store
+Thumbs.db
+
+# IDE configurations
+.vscode/
+.idea/
