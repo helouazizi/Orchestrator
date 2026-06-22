@@ -76,12 +76,9 @@ metadata:
   name: billing-database-service
   namespace: default
 spec:
-  # 1. Changed from ClusterIP to NodePort
-  type: NodePort 
+  type: ClusterIP
   ports:
     - port: 5432
       targetPort: 5432
-      # 2. Exposes port 35432 on your K3s cluster nodes
-      nodePort: 31432 
   selector:
     app: billing-database
