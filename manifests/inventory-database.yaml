@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inventory-database-secrets
+  namespace: default
+type: Opaque
+stringData:
+  postgres-user: $POSTGRES_USER_INVENTORY
+  postgres-password: $POSTGRES_PASSWORD_INVENTORY
+  postgres-db: $POSTGRES_DB_INVENTORY
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: inventory-database-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-database-deployment
+  namespace: default
+  labels:
+    app: inventory-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-database
+  template:
+    metadata:
+      labels:
+        app: inventory-database
+    spec:
+      containers:
+      - name: inventory-database-postgres
+        image: $DOCKER_USER/inventory-database:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5432
+          name: postgresdb
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: inventory-database-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: inventory-database-secrets
+              key: postgres-password
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: inventory-database-secrets
+              key: postgres-db
+        volumeMounts:
+        - name: inventory-database-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: inventory-database-storage
+        persistentVolumeClaim:
+          claimName: inventory-database-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-database-service
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: inventory-database

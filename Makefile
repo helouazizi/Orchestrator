@@ -86,7 +86,8 @@ push: login ## Push ALL built microservices images to Docker Hub
 
 release: build push ## Pipeline: Build and Push all services in one command
 
-deploy: ## Apply ALL manifest configuration files at once
+deploy: ## Apply ALL manifest configuration files with targeted variable injection
+
 	@echo "Deploying all manifests to K3s cluster..."
 	$(foreach v,$(shell sed 's/=.*//' .env),$(eval export $(v)))
 	@FILES=$$(find manifests -maxdepth 1 -name "*.yaml" -o -name "*.yml" 2>/dev/null); \
@@ -95,9 +96,20 @@ deploy: ## Apply ALL manifest configuration files at once
 		exit 1; \
 	fi; \
 	for file in $$FILES; do \
-		echo "Processing $$file..."; \
-		envsubst < $$file | $(KUBECTL) apply -f -; \
+		echo "$(CLR_CYAN)Processing $$file...$(CLR_RESET)"; \
+		REQUIRED_VARS=$$(grep -o '\$$[A-Z0-9_]*' $$file | sort -u | tr -d '$$' | awk '{print "$$"$$1}' | tr '\n' ','); \
+		envsubst "$$REQUIRED_VARS" < $$file | $(KUBECTL) apply -f -; \
 	done
+
+# debug-injection: ## Preview exactly what text envsubst passes to the cluster
+# 	$(foreach v,$(shell sed 's/=.*//' .env),$(eval export $(v)))
+# 	@for file in $$(find manifests -maxdepth 1 -name "*.yaml" -o -name "*.yml" 2>/dev/null); do \
+# 		echo "=== Previewing Injected Output for $$file ==="; \
+# 		REQUIRED_VARS=$$(grep -o '\$$[A-Z0-9_]*' $$file | sort -u | tr -d '$$' | awk '{print "$$"$$1}' | tr '\n' ','); \
+# 		echo "Detected variables for this file: $$REQUIRED_VARS"; \
+# 		envsubst "$$REQUIRED_VARS" < $$file; \
+# 		echo "================================================\n"; \
+# 	done
 
 destroy: ## Tear down ALL deployed infrastructure resources
 	@echo "Cleaning up K3s resources..."
