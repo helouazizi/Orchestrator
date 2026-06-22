@@ -10,7 +10,7 @@ KUBECONFIG_PATH := $(shell pwd)/k3s-local.yaml
 KUBECTL := KUBECONFIG=$(KUBECONFIG_PATH) kubectl
 
 # Target application source microservices directories
-SERVICES := srcs/api-gateway-app srcs/billing-app srcs/inventory-app srcs/postgres-image srcs/rabbit-queue
+SERVICES := srcs/api-gateway-app srcs/billing-app srcs/inventory-app srcs/inventory-database srcs/billing-database  srcs/rabbit-queue
 
 # ANSI Color Code Escapes for Terminal Formatting
 CLR_CYAN   := \033[36m
@@ -88,7 +88,16 @@ release: build push ## Pipeline: Build and Push all services in one command
 
 deploy: ## Apply ALL manifest configuration files at once
 	@echo "Deploying all manifests to K3s cluster..."
-	$(KUBECTL) apply -f manifests/
+	$(foreach v,$(shell sed 's/=.*//' .env),$(eval export $(v)))
+	@FILES=$$(find manifests -maxdepth 1 -name "*.yaml" -o -name "*.yml" 2>/dev/null); \
+	if [ -z "$$FILES" ]; then \
+		echo "⚠️ ERROR: No .yaml or .yml files found inside the 'manifests/' folder!"; \
+		exit 1; \
+	fi; \
+	for file in $$FILES; do \
+		echo "Processing $$file..."; \
+		envsubst < $$file | $(KUBECTL) apply -f -; \
+	done
 
 destroy: ## Tear down ALL deployed infrastructure resources
 	@echo "Cleaning up K3s resources..."
