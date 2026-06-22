@@ -1,81 +1,103 @@
-# Include your secret credentials automatically
+# ==============================================================================
+# CONFIGURATION & VARIABLES
+# ==============================================================================
+
+# Include secret environment variables 
 -include .env
 
-# Set Kubernetes profile path
+# Kubernetes profile and binary wrapper configurations
 KUBECONFIG_PATH := $(shell pwd)/k3s-local.yaml
 KUBECTL := KUBECONFIG=$(KUBECONFIG_PATH) kubectl
 
-# List your microservices folders relative to the root
+# Target application source microservices directories
 SERVICES := srcs/api-gateway-app srcs/billing-app srcs/inventory-app srcs/postgres-image srcs/rabbit-queue
+
+# ANSI Color Code Escapes for Terminal Formatting
+CLR_CYAN   := \033[36m
+CLR_GREEN  := \033[32m
+CLR_YELLOW := \033[33m
+CLR_RESET  := \033[0m
+
+# ==============================================================================
+# ENTRY TARGETS
+# ==============================================================================
 
 .PHONY: help init login build push release deploy destroy status
 
 help: ## Show this automated help dashboard
-	@echo "🤖 Microservices DevOps Orchestrator Suite"
 	@echo "========================================="
-	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
-	
+	@echo "Microservices DevOps Orchestrator Suite"
+	@echo "========================================="
+	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CLR_CYAN)%-15s$(CLR_RESET) %s\n", $$1, $$2}'
+    
 init: ## Complete Pipeline: Bootstrap environment, install CLIs, boot cluster, and establish connection
-	@echo "🤖 [1/4] Creating local configuration file environment..."
+
+	@echo "$(CLR_CYAN)[1/4] Creating local configuration file environment...$(CLR_RESET)"
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
-		echo "✅ .env template created successfully."; \
+		echo "$(CLR_GREEN)STATUS: .env template created successfully.$(CLR_RESET)"; \
 	else \
-		echo "ℹ️ .env file already exists. Skipping copy."; \
+		echo "STATUS: .env file already exists. Skipping copy."; \
 	fi
 	
-	@echo "\n⚙️ [2/4] Verifying native CLI dependency installations..."
+	@echo "\n$(CLR_CYAN)[2/4] Verifying native CLI dependency installations...$(CLR_RESET)"
 	@chmod +x scripts/install_dependencies.sh
 	@bash scripts/install_dependencies.sh
 	
-	@echo "\n🚀 [3/4] Initializing cloud-native Virtual Machines via Vagrant..."
+	@echo "\n$(CLR_CYAN)[3/4] Initializing cloud-native Virtual Machines via Vagrant...$(CLR_RESET)"
 	@chmod +x scripts/cluster_up.sh
 	@bash scripts/cluster_up.sh
 	
-	@echo "\n🔌 [4/4] Establishing cryptographic handshake network bridge..."
+	@echo "\n$(CLR_CYAN)[4/4] Establishing cryptographic handshake network bridge...$(CLR_RESET)"
 	@chmod +x scripts/connect_host.sh
 	@bash scripts/connect_host.sh
+
+	@# Inject the path into .env so future Make sessions automatically pick it up
+	@if ! grep -q "KUBECONFIG=" .env 2>/dev/null; then \
+		echo "\nexport KUBECONFIG=\$$(pwd)/k3s-local.yaml" >> .env; \
+	fi
 	
 	@echo "\n========================================================="
-	@echo "🎉  Full Initialization Completed Successfully!"
+	@echo "$(CLR_GREEN)Full Initialization Completed Successfully!$(CLR_RESET)"
 	@echo "========================================================="
-
-	@echo "👉 Befor  connect execute this comand 'export KUBECONFIG=\$(pwd)/k3s-local.yaml'"
-	@echo "👉 And refrech your terminal session"
-	@echo "👉 To see check do 'make status'"
+	@echo "$(CLR_YELLOW)ACTION REQUIRED:$(CLR_RESET)"
+	@echo "1. Reload your terminal profile context:"
+	@echo "   source ~/.zshrc"
+	@echo "2. Check your cluster operational status instantly:"
+	@echo "   make status"
 
 login: ## Securely authenticate with Docker Hub using your secrets
-	@echo "🔑 Authenticating with Docker Hub..."
+	@echo "Authenticating with Docker Hub..."
 	@echo "$(DOCKER_PASS)" | docker login -u "$(DOCKER_USER)" --password-stdin
 
 build: ## Build Docker images for ALL microservices sequentially
 	@for service in $(SERVICES); do \
 		svc_name=$$(basename $$service); \
-		echo "🏗️ Building Docker Image for [$$svc_name]..."; \
+		echo "Building Docker Image for [$$svc_name]..."; \
 		docker build -t $(DOCKER_USER)/$$svc_name:latest ./$$service; \
 	done
 
 push: login ## Push ALL built microservices images to Docker Hub
 	@for service in $(SERVICES); do \
 		svc_name=$$(basename $$service); \
-		echo "🚀 Pushing [$$svc_name] to Docker Hub..."; \
+		echo "Pushing Image [$$svc_name] to Docker Hub..."; \
 		docker push $(DOCKER_USER)/$$svc_name:latest; \
 	done
 
 release: build push ## Pipeline: Build and Push all services in one command
 
 deploy: ## Apply ALL manifest configuration files at once
-	@echo "🚀 Deploying all manifests to K3s cluster..."
+	@echo "Deploying all manifests to K3s cluster..."
 	$(KUBECTL) apply -f manifests/
 
 destroy: ## Tear down ALL deployed infrastructure resources
-	@echo "🧹 Cleaning up K3s resources..."
+	@echo "Cleaning up K3s resources..."
 	$(KUBECTL) delete -f manifests/
 
 status: ## Check the complete multi-node cluster configuration state
-	@echo "🌐 Checking Cluster Nodes..."
+	@echo "$(CLR_CYAN)SYSTEM: Checking Cluster Nodes...$(CLR_RESET)"
 	@$(KUBECTL) get nodes -o wide
-	@echo "\n📦 Monitoring Running Pods..."
+	@echo "\n$(CLR_CYAN)SYSTEM: Monitoring Running Pods...$(CLR_RESET)"
 	@$(KUBECTL) get pods -o wide -A
-	@echo "\n🔌 Monitoring Routing Services..."
+	@echo "\n$(CLR_CYAN)SYSTEM: Monitoring Routing Services...$(CLR_RESET)"
 	@$(KUBECTL) get svc -A
