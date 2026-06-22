@@ -15,9 +15,34 @@ help: ## Show this automated help dashboard
 	@echo "========================================="
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 	
-init: ## Create the .env file from the .env.example template
-	@echo "🤖 Creating .env file..."
-	@cp .env.example .env
+init: ## Complete Pipeline: Bootstrap environment, install CLIs, boot cluster, and establish connection
+	@echo "🤖 [1/4] Creating local configuration file environment..."
+	@if [ ! -f .env ]; then \
+		cp .env.example .env; \
+		echo "✅ .env template created successfully."; \
+	else \
+		echo "ℹ️ .env file already exists. Skipping copy."; \
+	fi
+	
+	@echo "\n⚙️ [2/4] Verifying native CLI dependency installations..."
+	@chmod +x scripts/install_dependencies.sh
+	@bash scripts/install_dependencies.sh
+	
+	@echo "\n🚀 [3/4] Initializing cloud-native Virtual Machines via Vagrant..."
+	@chmod +x scripts/cluster_up.sh
+	@bash scripts/cluster_up.sh
+	
+	@echo "\n🔌 [4/4] Establishing cryptographic handshake network bridge..."
+	@chmod +x scripts/connect_host.sh
+	@bash scripts/connect_host.sh
+	
+	@echo "\n========================================================="
+	@echo "🎉  Full Initialization Completed Successfully!"
+	@echo "========================================================="
+
+	@echo "👉 Befor  connect execute this comand 'export KUBECONFIG=\$(pwd)/k3s-local.yaml'"
+	@echo "👉 And refrech your terminal session"
+	@echo "👉 To see check do 'make status'"
 
 login: ## Securely authenticate with Docker Hub using your secrets
 	@echo "🔑 Authenticating with Docker Hub..."
