@@ -8,5 +8,6 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
     sudo cat /var/lib/rancher/k3s/server/node-token > /vagrant/node-token
     sudo kubectl create secret generic app-secret --from-env-file=/vagrant/.env
 fi
+sudo kubectl apply -f /vagrant/Manifests/rabbitmq_pod.yml
 
 
