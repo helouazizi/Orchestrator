@@ -70,6 +70,7 @@ spec:
         persistentVolumeClaim:
           claimName: billing-database-pvc
 ---
+
 apiVersion: v1
 kind: Service
 metadata:

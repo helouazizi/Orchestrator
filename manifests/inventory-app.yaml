@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inventory-app-secrets
+  namespace: default
+type: Opaque
+stringData:
+  postgres-user: $POSTGRES_USER_INVENTORY
+  postgres-password: $POSTGRES_PASSWORD_INVENTORY
+  postgres-db: $POSTGRES_DB_INVENTORY
+  db-url: $INVENTORY_DATABASE_URL
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-app-deployment
+  namespace: default
+  labels:
+    app: inventory-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-app
+  template:
+    metadata:
+      labels:
+        app: inventory-app
+    spec:
+      containers:
+      - name: inventory-app
+        image: $DOCKER_USER/inventory-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        # Networking parameters to find the database service
+        - name: DB_HOST
+          value: "inventory-database-service"
+        - name: DB_PORT
+          value: "5432"
+          
+        # Dynamically pulling the values from the app secret block above
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: inventory-app-secrets
+              key: postgres-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: inventory-app-secrets
+              key: postgres-password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: inventory-app-secrets
+              key: postgres-db
+        - name: INVENTORY_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: inventory-app-secrets
+              key: db-url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-app-service
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  selector:
+    app: inventory-app
