@@ -85,7 +85,6 @@ push: login ## Push ALL built microservices images to Docker Hub
 	done
 
 release: build push ## Pipeline: Build and Push all services in one command
-
 deploy: ## Apply ALL manifest configuration files with targeted variable injection
 
 	@echo "Deploying all manifests to K3s cluster..."
