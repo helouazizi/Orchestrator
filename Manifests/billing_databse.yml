@@ -1,0 +1,16 @@
+appVersion: apps/v1
+kind: statefulset
+metadata:
+  name: billing-database
+  labels:
+    app: billing-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing-database
+  template:
+    metadata:
+      labels:
+        app: billing-database
+    spec: 
