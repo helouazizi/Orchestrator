@@ -16,7 +16,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path # Uses K3s built-in local path storage engine
+  storageClassName: local-path
   resources:
     requests:
       storage: 2Gi
@@ -31,7 +31,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate # Prevents two pods from writing to the same disk volume during a rolling update
+    type: Recreate 
   selector:
     matchLabels:
       app: rabbitmq
@@ -72,7 +72,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rabbitmq-service # This name matches exactly what your billing and gateway apps look for!
+  name: rabbitmq-service 
   namespace: default
 spec:
   type: NodePort

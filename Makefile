@@ -32,7 +32,7 @@ help: ## Show this automated help dashboard
     
 init: ## Complete Pipeline: Bootstrap environment, install CLIs, boot cluster, and establish connection
 
-	@echo "$(CLR_CYAN)[1/4] Creating local configuration file environment...$(CLR_RESET)"
+	@echo "$(CLR_CYAN)[1/5] Creating local configuration file environment...$(CLR_RESET)"
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
 		echo "$(CLR_GREEN)STATUS: .env template created successfully.$(CLR_RESET)"; \
@@ -40,31 +40,31 @@ init: ## Complete Pipeline: Bootstrap environment, install CLIs, boot cluster, a
 		echo "STATUS: .env file already exists. Skipping copy."; \
 	fi
 	
-	@echo "\n$(CLR_CYAN)[2/4] Verifying native CLI dependency installations...$(CLR_RESET)"
+	@echo "\n$(CLR_CYAN)[2/5] Verifying native CLI dependency installations...$(CLR_RESET)"
 	@chmod +x scripts/install_dependencies.sh
 	@bash scripts/install_dependencies.sh
 	
-	@echo "\n$(CLR_CYAN)[3/4] Initializing cloud-native Virtual Machines via Vagrant...$(CLR_RESET)"
+	@echo "\n$(CLR_CYAN)[3/5] Initializing cloud-native Virtual Machines via Vagrant...$(CLR_RESET)"
 	@chmod +x scripts/cluster_up.sh
 	@bash scripts/cluster_up.sh
 	
-	@echo "\n$(CLR_CYAN)[4/4] Establishing cryptographic handshake network bridge...$(CLR_RESET)"
+	@echo "\n$(CLR_CYAN)[4/5] Establishing cryptographic handshake network bridge...$(CLR_RESET)"
 	@chmod +x scripts/connect_host.sh
 	@bash scripts/connect_host.sh
 
-	@# Inject the path into .env so future Make sessions automatically pick it up
-	@if ! grep -q "KUBECONFIG=" .env 2>/dev/null; then \
-		echo "\nexport KUBECONFIG=\$$(pwd)/k3s-local.yaml" >> .env; \
-	fi
+	@echo "\n$(CLR_CYAN)[5/5]Linking cluster configuration globally to your system...$(CLR_RESET)"
+	@mkdir -p ~/.kube
+	@cp k3s-local.yaml ~/.kube/config
+	@chmod 600 ~/.kube/config
+	@echo "STATUS: Synced cluster config to standard system path (~/.kube/config)"
 	
 	@echo "\n========================================================="
 	@echo "$(CLR_GREEN)Full Initialization Completed Successfully!$(CLR_RESET)"
 	@echo "========================================================="
-	@echo "$(CLR_YELLOW)ACTION REQUIRED:$(CLR_RESET)"
-	@echo "1. Reload your terminal profile context:"
-	@echo "   source ~/.zshrc"
-	@echo "2. Check your cluster operational status instantly:"
-	@echo "   make status"
+	@echo "$(CLR_GREEN)Everything is ready to roll!$(CLR_RESET)"
+	@echo "You can now run commands natively from ANY terminal window:"
+	@echo "   👉 kubectl get nodes"
+	@echo "   👉 make status"
 
 login: ## Securely authenticate with Docker Hub using your secrets
 	@echo "Authenticating with Docker Hub..."

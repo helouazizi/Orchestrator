@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Text formatting modifiers for clean output readability
 CLR_CYAN="\033[36m"
 CLR_GREEN="\033[32m"
 CLR_RESET="\033[0m"
@@ -11,7 +10,6 @@ echo "--------------------------------------------------------"
 
 IFACE=$(ip -o -4 addr show | grep "192.168.56.11" | awk '{print $2}')
 
-# Loop and wait until the master script successfully drops the token file
 while [ ! -f /vagrant/node-token ]; do
   echo "STATUS: Waiting for master node-token file to appear..."
   sleep 3

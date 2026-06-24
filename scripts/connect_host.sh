@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Text formatting modifiers for clean output readability
 CLR_CYAN="\033[36m"
 CLR_GREEN="\033[32m"
 CLR_RESET="\033[0m"

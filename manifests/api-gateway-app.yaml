@@ -5,7 +5,6 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  # RabbitMQ credentials extracted from your .env
   rabbitmq-user: $RABBITMQ_DEFAULT_USER
   rabbitmq-pass: $RABBITMQ_DEFAULT_PASS
   rabbitmq-vhost: $RABBITMQ_DEFAULT_VHOST
@@ -34,18 +33,15 @@ spec:
         image: $DOCKER_USER/api-gateway-app:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080 # Adjust if your API Gateway code listens internally on a different port (e.g., 3000, 5000)
+        - containerPort: 8080 
           name: http
         env:
         - name: PYTHONUNBUFFERED
           value: "1"
-        # 1. RabbitMQ Connection Target
         - name: RABBITMQ_HOST
           value: "rabbitmq-service"
         - name: RABBITMQ_PORT
           value: "5672"
-          
-        # 2. Injected Secure Parameters for the Broker Connection
         - name: RABBITMQ_DEFAULT_USER
           valueFrom:
             secretKeyRef:
@@ -82,6 +78,6 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
-      nodePort: 30000 # Exposed externally on port 30000 for client traffic
+      nodePort: 30000 
   selector:
     app: api-gateway-app
