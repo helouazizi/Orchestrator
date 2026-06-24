@@ -133,9 +133,14 @@ destroy: ## Tear down ALL deployed infrastructure resources
 
 
 status: ## Check the complete multi-node cluster configuration state
+
 	@echo "$(CLR_CYAN)SYSTEM: Checking Cluster Nodes...$(CLR_RESET)"
 	@$(KUBECTL) get nodes -o wide
 	@echo "\n$(CLR_CYAN)SYSTEM: Monitoring Running Pods...$(CLR_RESET)"
 	@$(KUBECTL) get pods -o wide -A
 	@echo "\n$(CLR_CYAN)SYSTEM: Monitoring Routing Services...$(CLR_RESET)"
 	@$(KUBECTL) get svc -A
+
+port-forward: ## Establish active port-forward tunnel to the API Gateway local interface
+	@echo "$(CLR_CYAN)Opening secure port-forward tunnel to API Gateway (Ctrl+C to stop)...$(CLR_RESET)"
+	@kubectl port-forward service/api-gateway-service 3000:3000
