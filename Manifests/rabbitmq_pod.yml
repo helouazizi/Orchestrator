@@ -32,8 +32,18 @@ spec:
   selector:
     app: rabbitmq
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 15672
+      targetPort: 15672
       nodePort: 30001
 
 ---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-credentials
+type: Opaque
+stringData:
+  username: $RABBITMQ_USER
+  password: $RABBITMQ_PASS
+  vhost: $RABBITMQ_VHOST
