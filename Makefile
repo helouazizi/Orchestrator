@@ -103,17 +103,31 @@ deploy: ## Apply ALL manifest configuration files with targeted variable injecti
 
 debug-injection: ## Preview exactly what text envsubst passes to the cluster
 	$(foreach v,$(shell sed 's/=.*//' .env),$(eval export $(v)))
-	@for file in $$(find manifests -maxdepth 1 -name "*.yaml" -o -name "*.yml" 2>/dev/null); do \
-		echo "=== Previewing Injected Output for $$file ==="; \
-		REQUIRED_VARS=$$(grep -o '\$$[A-Z0-9_]*' $$file | sort -u | tr -d '$$' | awk '{print "$$"$$1}' | tr '\n' ','); \
-		echo "Detected variables for this file: $$REQUIRED_VARS"; \
-		envsubst "$$REQUIRED_VARS" < $$file; \
-		echo "================================================\n"; \
+	@for file in $$(find manifests -maxdepth 1 -name "*.yaml" 2>/dev/null); do \
+		echo "📁 File: $$file"; \
+		RAW_VARS=$$(grep -o '\$$[A-Z0-9_]*' $$file | sort -u | tr -d '$$'); \
+		if [ -z "$$RAW_VARS" ]; then \
+			echo "   ↳ ℹ️  No environment variables found in this manifest."; \
+		else \
+			echo "   ↳ Injected Variables:"; \
+			for var in $$RAW_VARS; do \
+				VALUE=$$(eval echo "\$$$$var"); \
+				if [ -n "$$VALUE" ]; then \
+					echo "     🔹 \$$$$var ➔ $$VALUE"; \
+				else \
+					echo "     ⚠️  \$$$$var ➔ NOT FOUND IN .ENV"; \
+				fi; \
+			done; \
+		fi; \
+		echo "------------------------------------------------\n"; \
 	done
+
+
 
 destroy: ## Tear down ALL deployed infrastructure resources
 	@echo "Cleaning up K3s resources..."
 	$(KUBECTL) delete -f manifests/
+
 
 status: ## Check the complete multi-node cluster configuration state
 	@echo "$(CLR_CYAN)SYSTEM: Checking Cluster Nodes...$(CLR_RESET)"
