@@ -21,3 +21,5 @@ Thumbs.db
 # IDE configurations
 .vscode/
 .idea/
+
+node-token
