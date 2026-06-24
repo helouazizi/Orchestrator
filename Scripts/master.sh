@@ -13,16 +13,14 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
 
     for file in $files; do
         # search for all variables in the yaml file and check if they are defined in the .env file
+        vars=""
         while read -r var; do
             envs=$(grep "^${var}=" /vagrant/.env)
-            export $envs | xargs && envsubst < $file | sudo kubectl apply -f -
-            break
+            vars+="$envs "        
         done < <(grep -oP '(?<=\$)\w+' "$file")
+        export $vars 
+        envsubst < $file |  kubectl apply -f -
     done
-
-
-
-    sudo kubectl apply -f /vagrant/Manifests/rabbitmq_pod.yml
 fi
 
 

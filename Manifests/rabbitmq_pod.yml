@@ -16,10 +16,26 @@ spec:
     spec:
       containers:
           - name: rabbitmq
-            image: rabbitmq:3.8-management
+            image: isayen/rabbit-queue:v1.0
             ports:
               - containerPort: 5672
               - containerPort: 15672
+            env:
+              - name: RABBITMQ_DEFAULT_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-credentials
+                    key: username
+              - name: RABBITMQ_DEFAULT_PASS
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-credentials
+                    key: password
+              - name: RABBITMQ_DEFAULT_VHOST
+                valueFrom:
+                  secretKeyRef:
+                    name: rabbitmq-credentials
+                    key: vhost
           
 ---
 
@@ -46,4 +62,4 @@ type: Opaque
 stringData:
   username: $RABBITMQ_USER
   password: $RABBITMQ_PASS
-  vhost: $RABBITMQ_VHOST
+  vhost: $RABBITMQ_VHOST  
