@@ -48,63 +48,6 @@ fi
 
 echo ""
 
-# 3. DOCKER ROOTLESS INSTALLATION
-if ! command -v docker &> /dev/null && [ ! -f "$HOME/bin/docker" ] && [ ! -f "$HOME/.local/bin/docker" ]; then
-    echo "STATUS: Installing Docker (rootless)..."
-    curl -fsSL https://get.docker.com/rootless | sh
-    echo "STATUS: Running dockerd-rootless-setuptool.sh with --skip-iptables..."
-    
-    # Run rootless tool. Fallback to local path if installer links it to ~/bin
-    if [ -f "$HOME/bin/dockerd-rootless-setuptool.sh" ]; then
-        "$HOME/bin/dockerd-rootless-setuptool.sh" install --skip-iptables || echo "⚠️ Skipping setup tool errors."
-    elif [ -f "$HOME/.local/bin/dockerd-rootless-setuptool.sh" ]; then
-        "$HOME/.local/bin/dockerd-rootless-setuptool.sh" install --skip-iptables || echo "⚠️ Skipping setup tool errors."
-    fi
-
-    # Set up environment variables temporarily for the rest of this installer execution
-    export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
-    export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"
-
-    # Inject Docker configurations smoothly into the detected user shell profile file
-    if [ -n "$SHELL_PROFILE" ]; then
-        if ! grep -q "DOCKER_HOST" "$SHELL_PROFILE" 2>/dev/null; then
-            echo 'export PATH="$HOME/bin:$HOME/.local/bin:$PATH"' >> "$SHELL_PROFILE"
-            echo 'export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/docker.sock"' >> "$SHELL_PROFILE"
-        fi
-    fi
-
-    # Start the rootless Docker daemon in background safely
-    echo "STATUS: Starting Docker daemon (rootless) in background..."
-    if command -v dockerd-rootless.sh &> /dev/null; then
-        nohup dockerd-rootless.sh > "$HOME/docker-rootless.log" 2>&1 &
-        echo -e "✅ ${CLR_GREEN}Docker daemon started in background (log: ~/docker-rootless.log)${CLR_RESET}"
-    fi
-else
-    echo "STATUS: Docker engine binary is already set up."
-fi
-
-echo ""
-
-# 4. DOWNLOAD DOCKER COMPOSE V2
-if ! docker compose version &> /dev/null && [ ! -f "$HOME/.docker/cli-plugins/docker-compose" ]; then
-    echo "STATUS: Installing Docker Compose v2..."
-    curl -SL "https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64" \
-        -o "$HOME/.docker/cli-plugins/docker-compose"
-    chmod +x "$HOME/.docker/cli-plugins/docker-compose"
-
-    export PATH="$HOME/.docker/cli-plugins:$PATH"
-    if [ -n "$SHELL_PROFILE" ]; then
-        if ! grep -q "cli-plugins" "$SHELL_PROFILE" 2>/dev/null; then
-            echo 'export PATH="$HOME/.docker/cli-plugins:$PATH"' >> "$SHELL_PROFILE"
-        fi
-    fi
-    echo -e "✅ ${CLR_GREEN}Docker Compose plugin setup completed.${CLR_RESET}"
-else
-    echo "STATUS: Docker Compose plugin is already set up."
-fi
-
-echo ""
-
 # 5. AUTOMATIC SHELL USER-SPACE BIN PATH CONFIGURATION
 if [ -n "$SHELL_PROFILE" ]; then
     if ! grep -q '.local/bin' "$SHELL_PROFILE" 2>/dev/null; then

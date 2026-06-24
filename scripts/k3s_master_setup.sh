@@ -14,7 +14,8 @@ export K3S_KUBECONFIG_MODE="644"
 curl -sfL https://get.k3s.io | sh -s - \
   --flannel-iface="$IFACE" \
   --node-ip="192.168.56.10" \
-  --write-kubeconfig-mode="644"
+  --write-kubeconfig-mode="644" \
+  --node-taint "node-role.kubernetes.io/control-plane:NoSchedule"
 
 echo "STATUS: Saving Cluster Token for Agent access..."
 

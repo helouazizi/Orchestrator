@@ -43,6 +43,8 @@ init: ## Complete Pipeline: Bootstrap environment, install CLIs, boot cluster, a
 	@echo "\n$(CLR_CYAN)[2/5] Verifying native CLI dependency installations...$(CLR_RESET)"
 	@chmod +x scripts/install_dependencies.sh
 	@bash scripts/install_dependencies.sh
+	@chmod +x scripts/install_docker.sh
+	@bash scripts/install_docker.sh
 	
 	@echo "\n$(CLR_CYAN)[3/5] Initializing cloud-native Virtual Machines via Vagrant...$(CLR_RESET)"
 	@chmod +x scripts/cluster_up.sh
@@ -127,9 +129,23 @@ debug-injection: ## Preview exactly what text envsubst passes to the cluster
 
 
 
-destroy: ## Tear down ALL deployed infrastructure resources
-	@echo "Cleaning up K3s resources..."
-	$(KUBECTL) delete -f manifests/
+destroy: ## Tear down ALL deployed infrastructure resources, containers, and VMs
+	@echo "$(CLR_CYAN)[1/3] Gracefully terminating Kubernetes manifest deployments...$(CLR_RESET)"
+	@-$(KUBECTL) delete -f manifests/ 2>/dev/null || true
+
+	@echo "\n$(CLR_CYAN)[2/4] Purging localized rootless Docker runtime resources...$(CLR_RESET)"
+	@-docker system prune -a --volumes -f 2>/dev/null || true
+	@echo "$(CLR_GREEN)STATUS: Docker image cache, dangling volumes, and stopped containers cleared.$(CLR_RESET)"
+
+	@echo "\n$(CLR_CYAN)[3/4] Destroying cloud-native Vagrant Virtual Machine nodes...$(CLR_RESET)"
+	@vagrant destroy -f
+	
+	@echo "\n$(CLR_CYAN)[4/4]Removing temporary local configurations...$(CLR_RESET)"
+	@rm -f k3s-local.yaml
+	
+	@echo "========================================================="
+	@echo "$(CLR_GREEN)💥 Environment Completely Obliterated Successfully!$(CLR_RESET)"
+	@echo "========================================================="
 
 
 status: ## Check the complete multi-node cluster configuration state
