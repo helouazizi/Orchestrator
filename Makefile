@@ -57,14 +57,18 @@ init: ## Complete Pipeline: Bootstrap environment, install CLIs, boot cluster, a
 	@cp k3s-local.yaml ~/.kube/config
 	@chmod 600 ~/.kube/config
 	@echo "STATUS: Synced cluster config to standard system path (~/.kube/config)"
-	
 	@echo "\n========================================================="
 	@echo "$(CLR_GREEN)Full Initialization Completed Successfully!$(CLR_RESET)"
 	@echo "========================================================="
-	@echo "$(CLR_GREEN)Everything is ready to roll!$(CLR_RESET)"
-	@echo "You can now run commands natively from ANY terminal window:"
-	@echo "   👉 kubectl get nodes"
+	@echo "$(CLR_GREEN)Everything is ready to roll for Make targets!$(CLR_RESET)"
+	@echo "Check your cluster operational status instantly:"
 	@echo "   👉 make status"
+	@echo ""
+	@echo "$(CLR_YELLOW)ACTION REQUIRED (For Raw CLI Usage):$(CLR_RESET)"
+	@echo "To run native 'kubectl' or 'docker' commands outside of Make,"
+	@echo "refresh your current terminal window profile once:"
+	@echo "   👉 source ~/.zshrc (or ~/.bashrc)"
+	@echo "========================================================="
 
 login: ## Securely authenticate with Docker Hub using your secrets
 	@echo "Authenticating with Docker Hub..."
