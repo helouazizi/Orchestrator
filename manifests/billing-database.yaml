@@ -5,31 +5,19 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  postgres-user: $POSTGRES_USER_BILLING
-  postgres-password: $POSTGRES_PASSWORD_BILLING
-  postgres-db: $POSTGRES_DB_BILLING
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: billing-database-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 5Gi
+  postgres-user: "$POSTGRES_USER_BILLING"
+  postgres-password: "$POSTGRES_PASSWORD_BILLING"
+  postgres-db: "$POSTGRES_DB_BILLING"
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet 
 metadata:
   name: billing-database-deployment
   namespace: default
   labels:
     app: billing-database
 spec:
+  serviceName: "$BILLING_DB_HOST" 
   replicas: 1
   selector:
     matchLabels:
@@ -41,7 +29,7 @@ spec:
     spec:
       containers:
       - name: billing-database-postgres
-        image: $DOCKER_USER/billing-database:latest
+        image: "$DOCKER_USER/billing-database:latest"
         imagePullPolicy: Always
         ports:
         - containerPort: 5432
@@ -65,19 +53,26 @@ spec:
         volumeMounts:
         - name: billing-database-storage
           mountPath: /var/lib/postgresql/data
-      volumes:
-      - name: billing-database-storage
-        persistentVolumeClaim:
-          claimName: billing-database-pvc
----
 
+  volumeClaimTemplates:
+  - metadata:
+      name: billing-database-storage
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 5Gi
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-database-service
+  name: $BILLING_DB_HOST 
   namespace: default
 spec:
   type: ClusterIP
+  clusterIP: None 
   ports:
     - port: 5432
       targetPort: 5432

@@ -5,31 +5,20 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  postgres-user: $POSTGRES_USER_INVENTORY
-  postgres-password: $POSTGRES_PASSWORD_INVENTORY
-  postgres-db: $POSTGRES_DB_INVENTORY
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: inventory-database-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 5Gi
+  postgres-user: "$POSTGRES_USER_INVENTORY"
+  postgres-password: "$POSTGRES_PASSWORD_INVENTORY"
+  postgres-db: "$POSTGRES_DB_INVENTORY"
+  inventory-db-port: "$INVENTORY_DB_PORT"
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: inventory-database-deployment
   namespace: default
   labels:
     app: inventory-database
 spec:
+  serviceName: "$INVENTORY_DB_HOST"
   replicas: 1
   selector:
     matchLabels:
@@ -41,10 +30,10 @@ spec:
     spec:
       containers:
       - name: inventory-database-postgres
-        image: $DOCKER_USER/inventory-database:latest
+        image: "$DOCKER_USER/inventory-database:latest"
         imagePullPolicy: Always
         ports:
-        - containerPort: 5432
+        - containerPort: $INVENTORY_DB_PORT
           name: postgresdb
         env:
         - name: POSTGRES_USER
@@ -65,20 +54,28 @@ spec:
         volumeMounts:
         - name: inventory-database-storage
           mountPath: /var/lib/postgresql/data
-      volumes:
-      - name: inventory-database-storage
-        persistentVolumeClaim:
-          claimName: inventory-database-pvc
+
+  volumeClaimTemplates:
+  - metadata:
+      name: inventory-database-storage
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: inventory-database-service
+  name: $INVENTORY_DB_HOST
   namespace: default
 spec:
   type: ClusterIP
+  clusterIP: None
   ports:
-    - port: 5432
-      targetPort: 5432
+    - port: $INVENTORY_DB_PORT
+      targetPort: $INVENTORY_DB_PORT
   selector:
     app: inventory-database

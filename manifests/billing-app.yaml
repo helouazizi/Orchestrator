@@ -5,23 +5,25 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  postgres-user: $POSTGRES_USER_BILLING
-  postgres-password: $POSTGRES_PASSWORD_BILLING
-  postgres-db: $POSTGRES_DB_BILLING
-  db-url: $BILLING_DATABASE_URL
-  rabbitmq-user: $RABBITMQ_DEFAULT_USER
-  rabbitmq-pass: $RABBITMQ_DEFAULT_PASS
-  rabbitmq-vhost: $RABBITMQ_DEFAULT_VHOST
-  rabbitmq-queue: $RABBITMQ_QUEUE
+  postgres-user: "$POSTGRES_USER_BILLING"
+  postgres-password: "$POSTGRES_PASSWORD_BILLING"
+  postgres-db: "$POSTGRES_DB_BILLING"
+  db-url: "$BILLING_DATABASE_URL"
+  rabbitmq-user: "$RABBITMQ_DEFAULT_USER"
+  rabbitmq-pass: "$RABBITMQ_DEFAULT_PASS"
+  rabbitmq-vhost: "$RABBITMQ_DEFAULT_VHOST"
+  rabbitmq-host: "$RABBITMQ_HOST"
+  rabbitmq-queue: "$RABBITMQ_QUEUE"
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: billing-app-deployment
   namespace: default
   labels:
     app: billing-app
 spec:
+  serviceName: "$BILLING_APP_HOST" # Dynamically maps to billing-app-service
   replicas: 1
   selector:
     matchLabels:
@@ -33,17 +35,17 @@ spec:
     spec:
       containers:
       - name: billing-app
-        image: $DOCKER_USER/billing-app:latest
+        image: "$DOCKER_USER/billing-app:latest"
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080 # Adjust if your billing app code binds to a different internal port
+        - containerPort: $BILLING_PORT # Removed quotes: Schema requires an integer literal here
           name: http
         env:
         # 1. Billing Database Connection Configs
         - name: BILLING_DB_HOST
-          value: "billing-database-service"
+          value: "$BILLING_DB_HOST" # DYNAMIC: No longer hardcoded
         - name: BILLING_DB_PORT
-          value: "5432"
+          value: "$BILLING_DB_PORT" # Wrapped in quotes for strict string schema formatting
         - name: POSTGRES_USER_BILLING
           valueFrom:
             secretKeyRef:
@@ -67,9 +69,12 @@ spec:
 
         # 2. RabbitMQ Connection Configs
         - name: RABBITMQ_HOST
-          value: "rabbitmq-service" # Internal core service name for your RabbitMQ cluster broker
+          valueFrom:
+            secretKeyRef:
+              name: billing-app-secrets
+              key: rabbitmq-host
         - name: RABBITMQ_PORT
-          value: "5672"
+          value: "$RABBITMQ_PORT" # Wrapped in quotes for strict string schema formatting
         - name: RABBITMQ_DEFAULT_USER
           valueFrom:
             secretKeyRef:
@@ -94,12 +99,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-app-service
+  name: $BILLING_APP_HOST # Dynamically maps to billing-app-service
   namespace: default
 spec:
   type: ClusterIP 
+  clusterIP: None # Headless routing setup for the parent StatefulSet configuration
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: $BILLING_PORT # Removed quotes: Schema requires an integer literal here
+      targetPort: $BILLING_PORT
   selector:
     app: billing-app
