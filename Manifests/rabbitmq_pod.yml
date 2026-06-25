@@ -1,11 +1,11 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: rabbitmq-deployment
   labels:
     app: rabbitmq
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: rabbitmq
@@ -15,27 +15,39 @@ spec:
         app: rabbitmq
     spec:
       containers:
-          - name: rabbitmq
-            image: isayen/rabbit-queue:v1.0
-            ports:
-              - containerPort: 5672
-              - containerPort: 15672
-            env:
-              - name: RABBITMQ_DEFAULT_USER
-                valueFrom:
-                  secretKeyRef:
-                    name: rabbitmq-credentials
-                    key: username
-              - name: RABBITMQ_DEFAULT_PASS
-                valueFrom:
-                  secretKeyRef:
-                    name: rabbitmq-credentials
-                    key: password
-              - name: RABBITMQ_DEFAULT_VHOST
-                valueFrom:
-                  secretKeyRef:
-                    name: rabbitmq-credentials
-                    key: vhost
+        - name: rabbitmq
+          image: isayen/rabbit-queue:v1.0
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: username
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: password
+            - name: RABBITMQ_DEFAULT_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: vhost
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq/data
+  serviceName: rabbitmq-service
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi     
           
 ---
 
@@ -44,20 +56,20 @@ kind: Service
 metadata:
   name: rabbitmq-service
 spec:
-  type: NodePort
+  ClusterIP: None 
   selector:
     app: rabbitmq
   ports:
-    - port: 15672
-      targetPort: 15672
-      nodePort: 30001
+    - port: 5672
+      targetPort: 5672
+      
 
 ---
 
 apiVersion: v1
 kind: Secret
 metadata:
-  name: rabbitmq-credentials
+  name: rabbitmq-secrets
 type: Opaque
 stringData:
   username: $RABBITMQ_USER

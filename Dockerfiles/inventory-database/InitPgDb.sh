@@ -18,8 +18,8 @@ if [ ! -s "/var/lib/postgresql/data/PG_VERSION" ]; then
     su postgres -c "pg_ctl -D /var/lib/postgresql/data -w start"
 
     echo "Creating user and database..."
-    su postgres -c "psql -c \"CREATE USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';\""
-    su postgres -c "psql -c \"CREATE DATABASE $POSTGRES_DB OWNER $POSTGRES_USER;\""
+    su postgres -c "psql -c \"CREATE USER $INVENTORY_DB_USER WITH PASSWORD '$INVENTORY_DB_PASS';\""
+    su postgres -c "psql -c \"CREATE DATABASE $INVENTORY_DB_NAME OWNER $INVENTORY_DB_USER;\""
 
     su postgres -c "pg_ctl -D /var/lib/postgresql/data stop"
 

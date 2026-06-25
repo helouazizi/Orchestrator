@@ -4,6 +4,11 @@ set -e
 mkdir -p /var/lib/postgresql/data /run/postgresql
 chown -R postgres:postgres /var/lib/postgresql/data /run/postgresql
 
+echo "USER=[$BILLING_DB_USER]"
+echo "PASS=[$BILLING_DB_PASS]"
+echo "DB=[$BILLING_DB_NAME]"
+
+
 if [ ! -s "/var/lib/postgresql/data/PG_VERSION" ]; then
     echo "First boot: Initializing database cluster..."
 
@@ -18,8 +23,8 @@ if [ ! -s "/var/lib/postgresql/data/PG_VERSION" ]; then
     su postgres -c "pg_ctl -D /var/lib/postgresql/data -w start"
 
     echo "Creating user and database..."
-    su postgres -c "psql -c \"CREATE USER $POSTGRES_USER WITH PASSWORD '$POSTGRES_PASSWORD';\""
-    su postgres -c "psql -c \"CREATE DATABASE $POSTGRES_DB OWNER $POSTGRES_USER;\""
+    su postgres -c "psql -c \"CREATE USER $BILLING_DB_USER WITH PASSWORD '$BILLING_DB_PASS';\""
+    su postgres -c "psql -c \"CREATE DATABASE $BILLING_DB_NAME OWNER $BILLING_DB_USER;\""
 
     su postgres -c "pg_ctl -D /var/lib/postgresql/data stop"
 

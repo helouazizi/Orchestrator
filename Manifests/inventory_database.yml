@@ -1,47 +1,47 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: billing-database
+  name: inventory-database
   labels:
-    app: billingDB
+    app: inventoryDB
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: billingDB
+      app: inventoryDB
   template:
     metadata:
       labels:
-        app: billingDB
-    spec: 
+        app: inventoryDB
+    spec:
       containers:
-        - name: billing-database
-          image: isayen/billing-database:v1.0
+        - name: inventory-database
+          image: isayen/inventory-database:v1.0
           ports:
             - containerPort: 5432
           env:
-            - name: BILLING_DB_USER
+            - name: INVENTORY_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: billing-database-secrets
+                  name: inventory-database-secrets
                   key: username
-            - name: BILLING_DB_PASS
+            - name: INVENTORY_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: billing-database-secrets
+                  name: inventory-database-secrets
                   key: password
-            - name: BILLING_DB_NAME
+            - name: INVENTORY_DB_USER
               valueFrom:
                 secretKeyRef:
-                  name: billing-database-secrets
+                  name: inventory-database-secrets
                   key: database
           volumeMounts:
-            - name: billingdb-data
+            - name: inventorydb-data
               mountPath: /var/lib/postgresql/data
-  serviceName: billing-database-service
+  serviceName: inventory-database-service            
   volumeClaimTemplates:
     - metadata:
-        name: billingdb-data
+        name: inventorydb-data
       spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
@@ -53,11 +53,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-database-service
+  name: inventory-database-service
 spec:
   ClusterIP: None
   selector:
-    app: billingDB
+      app: inventoryDB
   ports:
     - port: 5432
 
@@ -66,10 +66,14 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: billing-database-secrets
+  name: inventory-database-secrets
   
 type: Opaque
 stringData:
-  username: $BILLING_DB_USER
-  password: $BILLING_DB_PASS 
-  database: $BILLING_DB_NAME
+  username: $INVENTORY_DB_USER
+  password: $INVENTORY_DB_PASS 
+  database: $INVENTORY_DB_NAME
+
+      
+      
+        
