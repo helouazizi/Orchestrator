@@ -14,6 +14,7 @@ stringData:
   rabbitmq-vhost: "$RABBITMQ_DEFAULT_VHOST"
   rabbitmq-host: "$RABBITMQ_HOST"
   rabbitmq-queue: "$RABBITMQ_QUEUE"
+
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -23,7 +24,8 @@ metadata:
   labels:
     app: billing-app
 spec:
-  serviceName: "$BILLING_APP_HOST" # Dynamically maps to billing-app-service
+  # This MUST point to the headless service name below
+  serviceName: "billing-app-headless" 
   replicas: 1
   selector:
     matchLabels:
@@ -38,14 +40,14 @@ spec:
         image: "$DOCKER_USER/billing-app:latest"
         imagePullPolicy: Always
         ports:
-        - containerPort: $BILLING_PORT # Removed quotes: Schema requires an integer literal here
+        - containerPort: $BILLING_PORT 
           name: http
         env:
         # 1. Billing Database Connection Configs
         - name: BILLING_DB_HOST
-          value: "$BILLING_DB_HOST" # DYNAMIC: No longer hardcoded
+          value: "$BILLING_DB_HOST" 
         - name: BILLING_DB_PORT
-          value: "$BILLING_DB_PORT" # Wrapped in quotes for strict string schema formatting
+          value: "$BILLING_DB_PORT" 
         - name: POSTGRES_USER_BILLING
           valueFrom:
             secretKeyRef:
@@ -74,7 +76,7 @@ spec:
               name: billing-app-secrets
               key: rabbitmq-host
         - name: RABBITMQ_PORT
-          value: "$RABBITMQ_PORT" # Wrapped in quotes for strict string schema formatting
+          value: "$RABBITMQ_PORT" 
         - name: RABBITMQ_DEFAULT_USER
           valueFrom:
             secretKeyRef:
@@ -95,17 +97,33 @@ spec:
             secretKeyRef:
               name: billing-app-secrets
               key: rabbitmq-queue
+
+# ---
+# # SERVICE 1: Headless Service for StatefulSet Core Identity
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: billing-app-headless
+#   namespace: default
+# spec:
+#   clusterIP: None
+#   ports:
+#     - port: $BILLING_PORT
+#       targetPort: $BILLING_PORT
+#   selector:
+#     app: billing-app
+
 ---
+# SERVICE 2: Standard ClusterIP for your API Gateway routing
 apiVersion: v1
 kind: Service
 metadata:
-  name: $BILLING_APP_HOST # Dynamically maps to billing-app-service
+  name: $BILLING_APP_HOST 
   namespace: default
 spec:
   type: ClusterIP 
-  clusterIP: None # Headless routing setup for the parent StatefulSet configuration
   ports:
-    - port: $BILLING_PORT # Removed quotes: Schema requires an integer literal here
+    - port: $BILLING_PORT 
       targetPort: $BILLING_PORT
   selector:
     app: billing-app

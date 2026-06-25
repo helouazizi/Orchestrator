@@ -42,6 +42,7 @@ def billing_service(path):
         if field not in data:
             return jsonify({"message":f"{field} is required."}), 400
     try:
+        
         credential=pika.PlainCredentials(Config.RABBITMQ_DEFAULT_USER,Config.RABBITMQ_DEFAULT_PASS)
         params=pika.ConnectionParameters(host=Config.RABBITMQ_HOST,port=int(Config.RABBITMQ_PORT),credentials=credential,virtual_host=Config.RABBITMQ_DEFAULT_VHOST)
         connection=pika.BlockingConnection(params)
@@ -56,11 +57,11 @@ def billing_service(path):
     
 @services_bp.route("/<path:path>",methods=["GET","POST","DELETE","PUT"])
 def server(path:str):
-    print(f"DEBUG: Forwarding request to: http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}") # CHECK YOUR DOCKER LOGS FOR THIS
     if path.startswith("api/movies"):
         print(f"DEBUG: Forwarding request to: http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}")
         return proxy_request(f"http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}")
     elif path.startswith("api/billing"):
+        print(f"DEBUG: Forwarding request to: http://{Config.BILLING_APP_HOST}:{Config.BILLING_PORT}/{path}")
         return billing_service(path)
     else:
         return jsonify({"message":"SERVICE NOT FOUND"}), 404     

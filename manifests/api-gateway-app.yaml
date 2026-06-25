@@ -5,11 +5,13 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  rabbitmq-user: $RABBITMQ_DEFAULT_USER
-  rabbitmq-pass: $RABBITMQ_DEFAULT_PASS
-  rabbitmq-vhost: $RABBITMQ_DEFAULT_VHOST
-  rabbitmq-queue: $RABBITMQ_QUEUE
-  inventory-host: $INVENTORY_APP_HOST
+  rabbitmq-user: "$RABBITMQ_DEFAULT_USER"
+  rabbitmq-pass: "$RABBITMQ_DEFAULT_PASS"
+  rabbitmq-vhost: "$RABBITMQ_DEFAULT_VHOST"
+  rabbitmq-queue: "$RABBITMQ_QUEUE"
+  inventory-host: "$INVENTORY_APP_HOST"
+  billing-app-host: "$BILLING_APP_HOST"
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -19,7 +21,7 @@ metadata:
   labels:
     app: api-gateway-app
 spec:
-  replicas: 1
+  replicas: 1 
   selector:
     matchLabels:
       app: api-gateway-app
@@ -30,18 +32,18 @@ spec:
     spec:
       containers:
       - name: api-gateway-app
-        image: $DOCKER_USER/api-gateway-app:latest
+        image: "$DOCKER_USER/api-gateway-app:latest"
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080 
+        - containerPort: $API_GATEWAY_PORT 
           name: http
         env:
         - name: PYTHONUNBUFFERED
           value: "1"
         - name: RABBITMQ_HOST
-          value: "rabbitmq-service"
+          value: "$RABBITMQ_HOST" 
         - name: RABBITMQ_PORT
-          value: "5672"
+          value: "$RABBITMQ_PORT" 
         - name: RABBITMQ_DEFAULT_USER
           valueFrom:
             secretKeyRef:
@@ -67,6 +69,19 @@ spec:
             secretKeyRef:
               name: api-gateway-secrets
               key: inventory-host
+        - name: BILLING_APP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: api-gateway-secrets
+              key: billing-app-host
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service
@@ -76,8 +91,28 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 3000
-      targetPort: 3000
+    - port: $API_GATEWAY_PORT 
+      targetPort: $API_GATEWAY_PORT
       nodePort: 30000 
   selector:
     app: api-gateway-app
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway-deployment
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60

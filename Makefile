@@ -138,7 +138,7 @@ destroy: ## Tear down ALL deployed infrastructure resources, containers, and VMs
 	@echo "$(CLR_GREEN)STATUS: Docker image cache, dangling volumes, and stopped containers cleared.$(CLR_RESET)"
 
 	@echo "\n$(CLR_CYAN)[3/4] Destroying cloud-native Vagrant Virtual Machine nodes...$(CLR_RESET)"
-	@vagrant destroy -f
+# 	@vagrant destroy -f
 	
 	@echo "\n$(CLR_CYAN)[4/4]Removing temporary local configurations...$(CLR_RESET)"
 	@rm -f k3s-local.yaml

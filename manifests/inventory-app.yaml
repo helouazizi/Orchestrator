@@ -5,10 +5,10 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  postgres-user: $POSTGRES_USER_INVENTORY
-  postgres-password: $POSTGRES_PASSWORD_INVENTORY
-  postgres-db: $POSTGRES_DB_INVENTORY
-  db-url: $INVENTORY_DATABASE_URL
+  postgres-user: "$POSTGRES_USER_INVENTORY"
+  postgres-password: "$POSTGRES_PASSWORD_INVENTORY"
+  postgres-db: "$POSTGRES_DB_INVENTORY"
+  db-url: "$INVENTORY_DATABASE_URL"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,19 +29,17 @@ spec:
     spec:
       containers:
       - name: inventory-app
-        image: $DOCKER_USER/inventory-app:latest
+        image: "$DOCKER_USER/inventory-app:latest"
         imagePullPolicy: Always
         ports:
-        - containerPort: 8080
+        - containerPort: $INVENTORY_PORT 
           name: http
         env:
-        # Networking parameters to find the database service
         - name: DB_HOST
-          value: "inventory-database-service"
+          value: "$INVENTORY_DB_HOST" 
         - name: DB_PORT
-          value: "5432"
+          value: "$INVENTORY_DB_PORT" 
           
-        # Dynamically pulling the values from the app secret block above
         - name: DB_USER
           valueFrom:
             secretKeyRef:
@@ -62,16 +60,44 @@ spec:
             secretKeyRef:
               name: inventory-app-secrets
               key: db-url
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: inventory-app-service
+  name: $INVENTORY_APP_HOST 
   namespace: default
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: $INVENTORY_PORT
+      targetPort: $INVENTORY_PORT
   selector:
     app: inventory-app
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: inventory-app-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: inventory-app-deployment
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60 
