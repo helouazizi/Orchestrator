@@ -55,7 +55,7 @@ kind: Service
 metadata:
   name: billing-database-service
 spec:
-  ClusterIP: None
+  clusterIP: None
   selector:
     app: billingDB
   ports:

@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  - name: inventory-app
+    labels:
+      app: invapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: invapp
+  template:
+    metadata:
+      labels:
+        app: invapp
+    containers:
+      - name:

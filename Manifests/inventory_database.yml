@@ -55,7 +55,7 @@ kind: Service
 metadata:
   name: inventory-database-service
 spec:
-  ClusterIP: None
+  clusterIP: None
   selector:
       app: inventoryDB
   ports:
