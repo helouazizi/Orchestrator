@@ -19,6 +19,7 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
             envs=$(grep "^${var}=" /vagrant/.env)
             vars+="$envs "        
         done < <(grep -oP '(?<=\$)\w+' "$file")
+        vars=$(echo "$vars" | xargs)
         export $vars 
         envsubst < $file |  kubectl apply -f -
     done
