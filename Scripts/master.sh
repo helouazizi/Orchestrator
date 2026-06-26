@@ -1,6 +1,8 @@
-# !/bin/bash
-
-set -e 
+#!/bin/bash
+sed -i 's/\r$//' /vagrant/.env
+set -ae 
+. /vagrant/.env
+set +a
 
 if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
     curl -sfL https://get.k3s.io |  sh -s - \
@@ -14,13 +16,13 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
 
     for file in $files; do
         # search for all variables in the yaml file and check if they are defined in the .env file
-        vars=""
         while read -r var; do
-            envs=$(grep "^${var}=" /vagrant/.env)
-            vars+="$envs "        
-        done < <(grep -oP '(?<=\$)\w+' "$file")
-        vars=$(echo "$vars" | xargs)
-        export $vars 
+            if [ -z "${!var+x}" ]; then
+                echo "Variable $var not defined in .env"
+                exit 1
+            fi
+        done < <(grep -oP '(?<=\$)\w+' "$file" | sort -u)
+
         envsubst < $file |  kubectl apply -f -
     done
 fi
