@@ -14,4 +14,50 @@ spec:
       labels:
         app: invapp
     containers:
-      - name:
+      - name: inventory-app
+        image: isayen/inventory-app:v1.0
+        ports: 
+          - containerPort: 8080
+        env:
+          - name: INVENTORY_DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: inventory-database-secrets
+                key: url
+          - name: INVENTORY_PORT
+            valueFrom:
+              secretKeyRef:
+                name: inventory-database-secrets
+                key: port
+          - name: INVENTORY_HOST
+            valueFrom:
+              secretKeyRef:
+                name: inventory-database-secrets
+                key: host
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-app-service
+spec:
+  type: NodePort
+  selector: 
+    app: invapp
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+
+--- 
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inventory-database-secrets
+type: Opaque
+stringData:
+  url: $INVENTORY_DATABASE_URL
+  port: $INVENTORY_PORT
+  host: $INVENTORY_HOST
