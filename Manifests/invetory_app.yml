@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  - name: inventory-app
-    labels:
-      app: invapp
+  name: inventory-app
+  labels:
+    app: invapp
 spec:
   replicas: 3
   selector:
@@ -13,27 +13,28 @@ spec:
     metadata:
       labels:
         app: invapp
-    containers:
-      - name: inventory-app
-        image: isayen/inventory-app:v1.0
-        ports: 
-          - containerPort: 8080
-        env:
-          - name: INVENTORY_DATABASE_URL
-            valueFrom:
-              secretKeyRef:
-                name: inventory-database-secrets
-                key: url
-          - name: INVENTORY_PORT
-            valueFrom:
-              secretKeyRef:
-                name: inventory-database-secrets
-                key: port
-          - name: INVENTORY_HOST
-            valueFrom:
-              secretKeyRef:
-                name: inventory-database-secrets
-                key: host
+    spec:    
+      containers:
+        - name: inventory-app
+          image: isayen/inventory-app:v1.0
+          ports: 
+            - containerPort: 8080
+          env:
+            - name: INVENTORY_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-app-secrets
+                  key: url
+            - name: INVENTORY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-app-secrets
+                  key: port
+            - name: INVENTORY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-app-secrets
+                  key: host
 
 ---
 
@@ -55,9 +56,9 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: inventory-database-secrets
+  name: inventory-app-secrets
 type: Opaque
 stringData:
-  url: $INVENTORY_DATABASE_URL
-  port: $INVENTORY_PORT
-  host: $INVENTORY_HOST
+  url: "$INVENTORY_DATABASE_URL"
+  port: "$INVENTORY_PORT"
+  host: "$INVENTORY_HOST"

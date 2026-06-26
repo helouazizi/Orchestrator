@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  - name : api-gateway-app
+    labels:
+      app: api-gateway
+spec:
+  replicas: 3
+  selector:
+  matchLabels:
+    app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway-app
+          image: isayen/api-gateway-app:v1.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: API_GATEWAY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: port
+            - name: API_GATEWAY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: host
+            - name: INVENTORY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: inventory-host
+            - name: INVENTORY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: inventory-port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: rabbitmq-user
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: rabbitmq-pass
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: rabbitmq-host
+
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: rabbitmq-port
+            - name: RABBITMQ_QUEUE
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: rabbitmq-queue
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: rabbitmq-vhost
+            
