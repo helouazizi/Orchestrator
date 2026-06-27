@@ -18,8 +18,20 @@ curl -sfL https://get.k3s.io | sh -s - \
   --node-taint "node-role.kubernetes.io/control-plane:NoSchedule"
 
 echo "STATUS: Saving Cluster Token for Agent access..."
-
 sudo cat /var/lib/rancher/k3s/server/node-token > /vagrant/node-token
 
 echo "--------------------------------------------------------"
-echo -e "✅ ${CLR_GREEN}K3s Master Plane installation completed successfully!${CLR_RESET}"
+echo -e "${CLR_CYAN}PROVISION: Installing Helm CLI...${CLR_RESET}"
+echo "--------------------------------------------------------"
+
+# Download and execute the official Helm installer script
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod +x get_helm.sh
+./get_helm.sh
+rm get_helm.sh # Clean up installation script file after usage
+
+# Set up cluster network configuration path profiles for the vagrant user profile context
+echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /home/vagrant/.bashrc
+
+echo "--------------------------------------------------------"
+echo -e "✅ ${CLR_GREEN}K3s Master Plane & Helm installation completed successfully!${CLR_RESET}"

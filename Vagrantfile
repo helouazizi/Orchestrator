@@ -26,7 +26,7 @@ Vagrant.configure("2") do |config|
     agent.vm.network "private_network", ip: "192.168.56.11" # Distinct IP!
     
     agent.vm.provider "virtualbox" do |vb|
-      vb.memory = "1024" # Agents can be lighter
+      vb.memory = "2048" # Agents can be lighter
       vb.cpus = 1
     end
 
