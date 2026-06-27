@@ -16,6 +16,7 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
 
     for file in $files; do
         # search for all variables in the yaml file and check if they are defined in the .env file
+        echo -e "\033[38;5;208mChecking variables in $file\033[0m"
         while read -r var; do
             if [ -z "${!var+x}" ]; then
                 echo "Variable $var not defined in .env"
@@ -23,6 +24,7 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
             fi
         done < <(grep -oP '(?<=\$)\w+' "$file" | sort -u)
 
+        echo -e "\033[32mApplying $file\033[0m"
         envsubst < $file |  kubectl apply -f -
     done
 fi

@@ -19,6 +19,13 @@ spec:
           image: isayen/inventory-app:v1.0
           ports: 
             - containerPort: 8080
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
           env:
             - name: INVENTORY_DATABASE_URL
               valueFrom:
@@ -49,7 +56,6 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-      nodePort: 30080
 
 --- 
 
@@ -61,4 +67,4 @@ type: Opaque
 stringData:
   url: "$INVENTORY_DATABASE_URL"
   port: "$INVENTORY_PORT"
-  host: "$INVENTORY_HOST"
+  host: "$INVENTORY_HOST_INTERFACE"

@@ -19,6 +19,13 @@ spec:
           image: isayen/api-gateway-app:v1.0
           ports:
             - containerPort: 3000
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
           env:
             - name: API_GATEWAY_PORT
               valueFrom:
@@ -30,16 +37,16 @@ spec:
                 secretKeyRef:
                   name: api-gateway-secrets
                   key: host
-            - name: INVENTORY_HOST
+            - name: INVENTORY_IP
               valueFrom:
                 secretKeyRef:
-                  name: inventory-app-secrets
-                  key: inventory-host
+                  name: api-gateway-secrets
+                  key: inv-host
             - name: INVENTORY_PORT
               valueFrom:
                 secretKeyRef:
                   name: inventory-app-secrets
-                  key: inventory-port
+                  key: port
             - name: RABBITMQ_USER
               valueFrom:
                 secretKeyRef:
@@ -55,7 +62,6 @@ spec:
                 secretKeyRef:
                   name: api-gateway-secrets
                   key: rabbitmq-host
-
             - name: RABBITMQ_PORT
               valueFrom:
                 secretKeyRef:
@@ -96,7 +102,8 @@ metadata:
 type: Opaque
 stringData: 
   port: "$API_GATEWAY_PORT"
-  host: "$API_GATEWAY_HOST"
+  host: "$INVENTORY_HOST_INTERFACE"
+  inv-host: "$INVENTORY_HOST"
   rabbitmq-port: "$RABBITMQ_PORT"
   rabbitmq-host: "$RABBITMQ_HOST"
   rabbitmq-queue: "$RABBITMQ_QUEUE"
