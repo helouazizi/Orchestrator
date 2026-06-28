@@ -93,9 +93,9 @@ To validate the deployment and observe Kubernetes autoscaling, follow these step
 
 ```bash
 ./connection.sh
-kube get nodes
-kube get all -A
-kube get hpa -A
+kubectl get nodes
+kubectl get all -A
+kubectl get hpa -A
 ```
 
 Expected output should show both the master and agent nodes in `Ready` state.
@@ -103,9 +103,9 @@ Expected output should show both the master and agent nodes in `Ready` state.
 ### 2. Confirm application resources
 
 ```bash
-kube get deployments,statefulsets,services,secrets -A
-kube describe hpa api-gateway-hpa
-kube describe hpa inventory-app-hpa
+kubectl get deployments,statefulsets,services,secrets -A
+kubectl describe hpa api-gateway-hpa
+kubectl describe hpa inventory-app-hpa
 ```
 
 ### 3. Run a load test against the API gateway
@@ -131,7 +131,7 @@ done
 Example using a temporary Kubernetes pod:
 
 ```bash
-kube run load-generator --rm -it --image=alpine/siege -- /bin/sh -c "apk add --no-cache curl && siege -c20 -t60S http://api-gateway-service:3000/"
+kubectl run load-generator --rm -it --image=alpine/siege -- /bin/sh -c "apk add --no-cache curl && siege -c20 -t60S http://api-gateway-service:3000/"
 ```
 
 ### 4. Monitor autoscaling behavior
