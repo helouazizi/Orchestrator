@@ -31,15 +31,11 @@ else
     echo -e "${BLUE}kubectl is already installed.${NC}"
 fi
 
-# Copier le kubeconfig si nécessaire
-if [ ! -f "$KUBECONFIG_SOURCE" ]; then
-    echo -e "${RED}No kubeconfig on parent folder${NC}"
-    exit 1
-fi
-    echo -e "${ORANGE}Copying kubeconfig...${NC}"
-    mkdir -p "${HOME}/.kube"
-    cp "$KUBECONFIG_SOURCE" "$KUBECONFIG_DEST"
-    chmod 600 "$KUBECONFIG_DEST"
 
-    echo -e "${GREEN}kubeconfig copied to ${KUBECONFIG_DEST}.${NC}"
+echo -e "${ORANGE}Copying kubeconfig...${NC}"
+mkdir -p "${HOME}/.kube"
+cp "$KUBECONFIG_SOURCE" "$KUBECONFIG_DEST"
+chmod 600 "$KUBECONFIG_DEST"
+
+echo -e "${GREEN}kubeconfig copied to ${KUBECONFIG_DEST}.${NC}"
 echo -e "${GREEN}Setup completed successfully.${NC}"
