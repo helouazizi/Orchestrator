@@ -25,3 +25,5 @@ Thumbs.db
 node-token
 
 .vagrant
+
+kubeconfig.yaml

@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: billing-database
+  labels:
+    app: billingDB
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billingDB
+  template:
+    metadata:
+      labels:
+        app: billingDB
+    spec: 
+      containers:
+        - name: billing-database
+          image: isayen/billing-database:v1.0
+          ports:
+            - containerPort: $BILLING_DB_PORT
+          env:
+            - name: BILLING_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: username
+            - name: BILLING_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: password
+            - name: BILLING_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: billing-database-secrets
+                  key: database
+          volumeMounts:
+            - name: billingdb-data
+              mountPath: /var/lib/postgresql/data
+  serviceName: billing-database-service
+  volumeClaimTemplates:
+    - metadata:
+        name: billingdb-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-database-service
+spec:
+  clusterIP: None
+  selector:
+    app: billingDB
+  ports:
+    - port: $BILLING_DB_PORT
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: billing-database-secrets
+  
+type: Opaque
+stringData:
+  username: $BILLING_DB_USER
+  password: $BILLING_DB_PASS 
+  database: $BILLING_DB_NAME

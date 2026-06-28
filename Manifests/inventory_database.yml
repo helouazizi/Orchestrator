@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: inventory-database
+  labels:
+    app: inventoryDB
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventoryDB
+  template:
+    metadata:
+      labels:
+        app: inventoryDB
+    spec:
+      containers:
+        - name: inventory-database
+          image: isayen/inventory-database:v1.0
+          ports:
+            - containerPort: $INVENTORY_DB_PORT
+          env:
+            - name: INVENTORY_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-database-secrets
+                  key: username
+            - name: INVENTORY_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-database-secrets
+                  key: password
+            - name: INVENTORY_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-database-secrets
+                  key: database
+          volumeMounts:
+            - name: inventorydb-data
+              mountPath: /var/lib/postgresql/data
+  serviceName: inventory-database-service            
+  volumeClaimTemplates:
+    - metadata:
+        name: inventorydb-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-database-service
+spec:
+  clusterIP: None
+  selector:
+      app: inventoryDB
+  ports:
+    - port: $INVENTORY_DB_PORT
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inventory-database-secrets
+type: Opaque
+stringData:
+  username: "$INVENTORY_DB_USER"
+  password: "$INVENTORY_DB_PASS" 
+  database: "$INVENTORY_DB_NAME"
+
+
+      
+        

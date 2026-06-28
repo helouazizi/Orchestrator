@@ -1,37 +1,50 @@
-Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/jammy64"
+def load_env(path)
+  File.readlines(path).each do |line|
+    next if line.strip.empty?
+    next if line.strip.start_with?("#")
 
-  # ==========================================
-  # 1. THE MASTER NODE
-  # ==========================================
-  config.vm.define "master-node" do |master|
-    master.vm.hostname = "master-node"
-    master.vm.network "private_network", ip: "192.168.56.10"
-    
+    key, value = line.strip.split("=", 2)
+    ENV[key] = value if key && value
+  end
+end
+
+load_env(".env")
+
+Vagrant.configure("2") do |config|
+  
+  config.vm.box = "bento/ubuntu-22.04"
+
+
+  config.vm.define "master" do |master|
+    master.vm.hostname = "Master"
+    master.vm.network "private_network", ip: ENV['VmMaster_IP']
     master.vm.provider "virtualbox" do |vb|
       vb.memory = "2048"
       vb.cpus = 2
+      vb.name = "k3s-master"
     end
 
     master.vm.provision "shell" do |sh|
-      sh.path = "scripts/k3s_master_setup.sh"
+      sh.path = "Scripts/master.sh"
     end
   end
 
-  # ==========================================
-  # 2. THE AGENT NODE
-  # ==========================================
-  config.vm.define "agent1-node" do |agent|
-    agent.vm.hostname = "agent1-node"
-    agent.vm.network "private_network", ip: "192.168.56.11" # Distinct IP!
+
+  config.vm.define "worker" do |worker|
+    worker.vm.hostname = "Agent"
+    worker.vm.network "private_network", ip: ENV['VmWorker_IP']
     
-    agent.vm.provider "virtualbox" do |vb|
-      vb.memory = "1024" # Agents can be lighter
+    worker.vm.provider "virtualbox" do |vb|
+      vb.memory = "1536" 
       vb.cpus = 1
+      vb.name = "k3s-worker"
     end
 
-    agent.vm.provision "shell" do |sh|
-      sh.path = "scripts/k3s_agent_setup.sh"
+    worker.vm.provision "shell" do |sh|
+      sh.path = "Scripts/worker.sh"
+      sh.env = { "VmMaster_IP" => ENV['VmMaster_IP'], "VmWorker_IP" => ENV['VmWorker_IP'] }
+
     end
   end
+
 end

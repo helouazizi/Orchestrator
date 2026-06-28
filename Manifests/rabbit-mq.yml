@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq-deployment
+  labels:
+    app: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: isayen/rabbit-queue:v1.0
+          ports:
+            - containerPort: $RABBITMQ_PORT
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: username
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: password
+            - name: RABBITMQ_DEFAULT_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: vhost
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq/data
+  serviceName: rabbitmq-service
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi     
+          
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-service
+spec:
+  clusterIP: None 
+  selector:
+    app: rabbitmq
+  ports:
+    - port: $RABBITMQ_PORT
+      targetPort: $RABBITMQ_PORT
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secrets
+type: Opaque
+stringData:
+  username: $RABBITMQ_USER
+  password: $RABBITMQ_PASS
+  vhost: $RABBITMQ_VHOST  
+

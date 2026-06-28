@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway-app
+  labels:
+    app: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway-app
+          image: isayen/api-gateway-app:v1.0
+          ports:
+            - containerPort: $API_GATEWAY_PORT
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          env:
+            - name: API_GATEWAY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: port
+            - name: API_GATEWAY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: host
+            - name: INVENTORY_IP
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: inv-host
+            - name: INVENTORY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-app-secrets
+                  key: port
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: username
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: password
+            - name: RABBITMQ_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: rabbitmq-host
+            - name: RABBITMQ_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: rabbitmq-port
+            - name: RABBITMQ_QUEUE
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secrets
+                  key: rabbitmq-queue
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secrets
+                  key: vhost
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+spec:
+  type: NodePort
+  selector: 
+    app: api-gateway
+  ports:
+    - port: $API_GATEWAY_PORT
+      targetPort: $API_GATEWAY_PORT
+      nodePort: 30000
+--- 
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-gateway-secrets
+type: Opaque
+stringData: 
+  port: "$API_GATEWAY_PORT"
+  host: "$INVENTORY_HOST_INTERFACE"
+  inv-host: "$INVENTORY_HOST"
+  rabbitmq-port: "$RABBITMQ_PORT"
+  rabbitmq-host: "$RABBITMQ_HOST"
+  rabbitmq-queue: "$RABBITMQ_QUEUE"
+
+--- 
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway-app
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
