@@ -18,7 +18,7 @@ spec:
         - name: inventory-app
           image: isayen/inventory-app:v1.0
           ports: 
-            - containerPort: 8080
+            - containerPort: $INVENTORY_PORT
           resources:
             requests:
               cpu: "100m"
@@ -54,8 +54,8 @@ spec:
   selector: 
     app: invapp
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: $INVENTORY_PORT
+      targetPort: $INVENTORY_PORT
 
 --- 
 
@@ -68,3 +68,24 @@ stringData:
   url: "$INVENTORY_DATABASE_URL"
   port: "$INVENTORY_PORT"
   host: "$INVENTORY_HOST_INTERFACE"
+
+--- 
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: inventory-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: invapp
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60

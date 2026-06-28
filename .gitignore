@@ -1,3 +1,4 @@
 .env
 .vagrant
 node-token
+kubeconfig.yaml

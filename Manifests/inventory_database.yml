@@ -18,7 +18,7 @@ spec:
         - name: inventory-database
           image: isayen/inventory-database:v1.0
           ports:
-            - containerPort: 5432
+            - containerPort: $INVENTORY_DB_PORT
           env:
             - name: INVENTORY_DB_USER
               valueFrom:
@@ -59,7 +59,7 @@ spec:
   selector:
       app: inventoryDB
   ports:
-    - port: 5432
+    - port: $INVENTORY_DB_PORT
 
 ---
 
@@ -73,6 +73,6 @@ stringData:
   password: "$INVENTORY_DB_PASS" 
   database: "$INVENTORY_DB_NAME"
 
-      
+
       
         

@@ -18,7 +18,7 @@ spec:
         - name: billing-database
           image: isayen/billing-database:v1.0
           ports:
-            - containerPort: 5432
+            - containerPort: $BILLING_DB_PORT
           env:
             - name: BILLING_DB_USER
               valueFrom:
@@ -59,7 +59,7 @@ spec:
   selector:
     app: billingDB
   ports:
-    - port: 5432
+    - port: $BILLING_DB_PORT
 
 ---
 

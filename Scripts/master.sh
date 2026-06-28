@@ -9,9 +9,10 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
     --node-taint CriticalAddonsOnly=true:NoSchedule \
     --flannel-iface=eth1
     sudo cat /var/lib/rancher/k3s/server/node-token > /vagrant/node-token
-
+    sudo sed "s/127.0.0.1/${VmMaster_IP}/g" /etc/rancher/k3s/k3s.yaml > /vagrant/kubeconfig.yaml
+    
+fi
     # search for all yaml files to extract variables from
-
     files=$(find /vagrant/Manifests -name "*.yml" -o -name "*.yaml")
 
     for file in $files; do
@@ -23,10 +24,9 @@ if [ ! -f /etc/rancher/k3s/k3s.yaml ]; then
                 exit 1
             fi
         done < <(grep -oP '(?<=\$)\w+' "$file" | sort -u)
-
         echo -e "\033[32mApplying $file\033[0m"
-        envsubst < $file |  kubectl apply -f -
+        envsubst < "$file" |  kubectl apply -f -
     done
-fi
 
-sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+    sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+
