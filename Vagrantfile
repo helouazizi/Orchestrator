@@ -16,7 +16,7 @@ Vagrant.configure("2") do |config|
 
 
   config.vm.define "master" do |master|
-    master.vm.hostname = "master-node"
+    master.vm.hostname = "Master"
     master.vm.network "private_network", ip: ENV['VmMaster_IP']
     master.vm.provider "virtualbox" do |vb|
       vb.memory = "2048"
@@ -31,7 +31,7 @@ Vagrant.configure("2") do |config|
 
 
   config.vm.define "worker" do |worker|
-    worker.vm.hostname = "agent1-node"
+    worker.vm.hostname = "Agent"
     worker.vm.network "private_network", ip: ENV['VmWorker_IP']
     
     worker.vm.provider "virtualbox" do |vb|

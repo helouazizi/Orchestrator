@@ -16,7 +16,12 @@ case $1 in
         echo "cluster stopped"
         vagrant suspend
         ;;
+    "destroy")
+        echo "cluster destroyed"
+        vagrant destroy -f
+        ;;
     *)
         echo "${1} is an unknown command"
+        exit 1
         ;;
 esac
