@@ -66,4 +66,8 @@ def server(path:str):
     else:
         return jsonify({"message":"SERVICE NOT FOUND"}), 404     
     
-    
+@services_bp.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "UP"
+    }), 200
