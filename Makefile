@@ -10,7 +10,7 @@ KUBECONFIG_PATH := $(shell pwd)/k3s-local.yaml
 KUBECTL := KUBECONFIG=$(KUBECONFIG_PATH) kubectl
 
 # Target application source microservices directories
-SERVICES := srcs/api-gateway-app srcs/billing-app srcs/inventory-app srcs/inventory-database srcs/billing-database  srcs/rabbit-queue
+SERVICES := srcs/rabbit-queue # srcs/api-gateway-app   srcs/billing-app srcs/inventory-app srcs/inventory-database srcs/billing-database  
 
 # ANSI Color Code Escapes for Terminal Formatting
 CLR_CYAN   := \033[36m
@@ -22,7 +22,7 @@ CLR_RESET  := \033[0m
 # ENTRY TARGETS
 # ==============================================================================
 
-.PHONY: help init login build push release deploy destroy status
+.PHONY: help init login build push release deploy destroy status run
 
 help: ## Show this automated help dashboard
 	@echo "========================================="
@@ -82,6 +82,8 @@ build: ## Build Docker images for ALL microservices sequentially
 		echo "Building Docker Image for [$$svc_name]..."; \
 		docker build -t $(DOCKER_USER)/$$svc_name:latest ./$$service; \
 	done
+run:
+	docker run 938a817bb966 -t mq-test
 
 push: login ## Push ALL built microservices images to Docker Hub
 	@for service in $(SERVICES); do \
