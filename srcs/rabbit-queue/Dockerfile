@@ -12,6 +12,7 @@ RUN chmod +x /script.sh
 
 EXPOSE 5672
 EXPOSE 15672
+EXPOSE 15692
 
 HEALTHCHECK \
   --interval=30s \

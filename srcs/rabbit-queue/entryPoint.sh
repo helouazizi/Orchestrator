@@ -8,7 +8,7 @@ cat >/etc/rabbitmq/rabbitmq.conf <<EOF
 loopback_users.guest = false
 EOF
 
-rabbitmq-plugins enable --offline rabbitmq_management
+rabbitmq-plugins enable --offline rabbitmq_management rabbitmq_prometheus
 
 rabbitmq-server &
 RABBIT_PID=$!
