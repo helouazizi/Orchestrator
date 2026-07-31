@@ -33,27 +33,82 @@ def billing_service(path):
         target_url = f"http://{Config.BILLING_APP_HOST}:{Config.BILLING_PORT}/{path}"
         return proxy_request(target_url)
 
-    data=request.get_json()
+    data = request.get_json()
     if not data:
-        return jsonify({"message":"Request Body is required."}), 400
-    
-    required_fields=["user_id", "number_of_items","total_amount"]
+        return jsonify({"message": "Request Body is required."}), 400
+
+    required_fields = ["user_id", "number_of_items", "total_amount"]
     for field in required_fields:
         if field not in data:
-            return jsonify({"message":f"{field} is required."}), 400
+            return jsonify({"message": f"{field} is required."}), 400
+
     try:
-        
-        credential=pika.PlainCredentials(Config.RABBITMQ_DEFAULT_USER,Config.RABBITMQ_DEFAULT_PASS)
-        params=pika.ConnectionParameters(host=Config.RABBITMQ_HOST,port=int(Config.RABBITMQ_PORT),credentials=credential,virtual_host=Config.RABBITMQ_DEFAULT_VHOST)
-        connection=pika.BlockingConnection(params)
+        print("========== RabbitMQ Debug ==========")
+        print(f"Host      : {Config.RABBITMQ_HOST}")
+        print(f"Port      : {Config.RABBITMQ_PORT}")
+        print(f"User      : {Config.RABBITMQ_DEFAULT_USER}")
+        print(f"VHost     : {Config.RABBITMQ_DEFAULT_VHOST}")
+        print(f"Queue     : {Config.RABBITMQ_QUEUE}")
+        print("Resolving host...")
+
+        import socket
+
+        try:
+            ip = socket.gethostbyname(Config.RABBITMQ_HOST)
+            print(f"Resolved IP: {ip}")
+        except Exception as e:
+            print(f"DNS Resolution FAILED: {e}")
+            raise
+
+        credential = pika.PlainCredentials(
+            Config.RABBITMQ_DEFAULT_USER,
+            Config.RABBITMQ_DEFAULT_PASS
+        )
+
+        params = pika.ConnectionParameters(
+            host=Config.RABBITMQ_HOST,
+            port=int(Config.RABBITMQ_PORT),
+            credentials=credential,
+            virtual_host=Config.RABBITMQ_DEFAULT_VHOST
+        )
+
+        print("Opening RabbitMQ connection...")
+        connection = pika.BlockingConnection(params)
+        print("Connection established.")
+
         channel = connection.channel()
-        channel.queue_declare(queue=Config.RABBITMQ_QUEUE, durable=True, arguments={'x-queue-type': 'quorum'})
-        channel.basic_publish(exchange='',routing_key=Config.RABBITMQ_QUEUE,body=request.get_data())
+        print("Channel created.")
+
+        channel.queue_declare(
+            queue=Config.RABBITMQ_QUEUE,
+            durable=True,
+            arguments={"x-queue-type": "quorum"}
+        )
+        print("Queue declared.")
+
+        channel.basic_publish(
+            exchange="",
+            routing_key=Config.RABBITMQ_QUEUE,
+            body=request.get_data()
+        )
+        print("Message published.")
+
         connection.close()
-        return jsonify({"message":"message added to queue successfully"}), 200
+        print("Connection closed.")
+        print("====================================")
+
+        return jsonify({"message": "message added to queue successfully"}), 200
+
     except Exception as e:
-        return jsonify({"error": f"Could not queue billing request: {str(e)}"}), 503
-         
+        import traceback
+
+        print("========== RabbitMQ ERROR ==========")
+        traceback.print_exc()
+        print("====================================")
+
+        return jsonify({
+            "error": f"Could not queue billing request: {str(e)}"
+        }), 503   
     
 @services_bp.route("/<path:path>",methods=["GET","POST","DELETE","PUT"])
 def server(path:str):
