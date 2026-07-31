@@ -2,6 +2,7 @@ import os
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 from .models import db # Assuming a models.py exists for BillingOrder model
+from .route import billing_bp
 
 # Load environment variables from the shared .env file at the project root
 # Assuming __init__.py is in app/ and .env is in the project root
@@ -32,6 +33,8 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
+    
+    app.register_blueprint(billing_bp)
 
     @app.errorhandler(404)
     def not_found(error):
