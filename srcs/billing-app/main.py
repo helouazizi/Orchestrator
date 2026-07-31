@@ -10,6 +10,9 @@ if __name__ == "__main__":
     # Flask web server can run simultaneously on port 8080.
     consumer_thread = threading.Thread(target=start_consuming, args=(app,), daemon=True)
     consumer_thread.start()
+    print("Consumer thread started.")
 
     port = int(os.environ.get('BILLING_PORT', 8080))
     app.run(host="0.0.0.0", port=port)
+    
+    

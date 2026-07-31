@@ -10,7 +10,7 @@ KUBECONFIG_PATH := $(shell pwd)/k3s-local.yaml
 KUBECTL := KUBECONFIG=$(KUBECONFIG_PATH) kubectl
 
 # Target application source microservices directories
-SERVICES :=   srcs/api-gateway-app #  srcs/rabbit-queue   srcs/billing-app srcs/inventory-app srcs/inventory-database srcs/billing-database  
+SERVICES :=    srcs/billing-app #  srcs/rabbit-queue  srcs/api-gateway-app  srcs/billing-app srcs/inventory-app srcs/inventory-database srcs/billing-database  
 
 # ANSI Color Code Escapes for Terminal Formatting
 CLR_CYAN   := \033[36m

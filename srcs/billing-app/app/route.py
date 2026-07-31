@@ -37,6 +37,7 @@ def process_message(ch, method, properties, body, app):
             # Optionally, nack the message if processing failed and you want it re-queued
             ch.basic_nack(method.delivery_tag, requeue=True) # Re-queue for transient errors
 
+
 def start_consuming(app: Flask):
     RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'rabbit-queue')
     RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT', 5672))
@@ -45,38 +46,60 @@ def start_consuming(app: Flask):
     RABBITMQ_VHOST = os.getenv('RABBITMQ_DEFAULT_VHOST', '/')
     RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE', 'billing_queue')
 
-    if not all([RABBITMQ_USER, RABBITMQ_PASS]):
-        raise RuntimeError("RabbitMQ credentials (RABBITMQ_DEFAULT_USER, RABBITMQ_DEFAULT_PASS) not set in environment variables.")
+    print("========== BILLING CONSUMER ==========")
+    print(f"HOST  : {RABBITMQ_HOST}")
+    print(f"PORT  : {RABBITMQ_PORT}")
+    print(f"USER  : {RABBITMQ_USER}")
+    print(f"VHOST : {RABBITMQ_VHOST}")
+    print(f"QUEUE : {RABBITMQ_QUEUE}")
+    print("======================================")
 
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+
     parameters = pika.ConnectionParameters(
         host=RABBITMQ_HOST,
         port=RABBITMQ_PORT,
         credentials=credentials,
         virtual_host=RABBITMQ_VHOST,
-        heartbeat=600 # Add heartbeat to detect dead connections
+        heartbeat=600
     )
 
-    while True: # Loop to attempt reconnection
+    while True:
         try:
+            print("Connecting to RabbitMQ...")
+
             connection = pika.BlockingConnection(parameters)
+
+            print("Connected!")
+
             channel = connection.channel()
-            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True, arguments={'x-queue-type': 'quorum'})
 
-            print(' [*] Billing consumer waiting for messages. To exit press CTRL+C')
+            print("Declaring queue...")
 
-            # Use a lambda to pass the Flask app context to the callback
-            on_message_callback = lambda ch, method, properties, body: process_message(ch, method, properties, body, app)
-            channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=on_message_callback)
+            channel.queue_declare(
+                queue=RABBITMQ_QUEUE,
+                durable=True,
+                arguments={'x-queue-type': 'quorum'}
+            )
+
+            print("Queue declared.")
+            print("Waiting for messages...")
+
+            on_message_callback = lambda ch, method, properties, body: process_message(
+                ch, method, properties, body, app
+            )
+
+            channel.basic_consume(
+                queue=RABBITMQ_QUEUE,
+                on_message_callback=on_message_callback
+            )
+
             channel.start_consuming()
-        except pika.exceptions.AMQPConnectionError as e:
-            print(f" [!] RabbitMQ connection error: {e}. Retrying in 5 seconds...")
-            import time
-            time.sleep(5)
-        except KeyboardInterrupt:
-            print(" [x] Billing consumer stopped by user.")
-            break
+
         except Exception as e:
-            print(f" [!] An unexpected error occurred in consumer: {e}. Retrying in 5 seconds...")
+            print(f"Consumer exception: {repr(e)}")
+            import traceback
+            traceback.print_exc()
+
             import time
             time.sleep(5)
