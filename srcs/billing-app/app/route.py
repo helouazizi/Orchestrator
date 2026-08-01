@@ -68,6 +68,7 @@ def start_consuming(app: Flask):
     print(f"PORT  : {RABBITMQ_PORT}")
     print(f"USER  : {RABBITMQ_USER}")
     print(f"VHOST : {RABBITMQ_VHOST}")
+    print(f"PASS : {RABBITMQ_PASS}")
     print(f"QUEUE : {RABBITMQ_QUEUE}")
     print("======================================")
 
