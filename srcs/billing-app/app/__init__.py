@@ -34,7 +34,7 @@ def create_app():
 
     db.init_app(app)
     
-    app.register_blueprint(billing_bp)
+    app.register_blueprint(billing_bp,url_prefix='/api')
 
     @app.errorhandler(404)
     def not_found(error):

@@ -84,24 +84,20 @@ def start_consuming(app: Flask):
 
     while True:
         try:
-            print("Connecting to RabbitMQ...")
-
+            print("STEP 1 - Connecting...")
             connection = pika.BlockingConnection(parameters)
 
-            print("Connected!")
+            print("STEP 2 - Connected")
 
             channel = connection.channel()
-
-            print("Declaring queue...")
+            print("STEP 3 - Channel created")
 
             channel.queue_declare(
                 queue=RABBITMQ_QUEUE,
                 durable=True,
-                arguments={'x-queue-type': 'quorum'}
+                arguments={"x-queue-type": "quorum"}
             )
-
-            print("Queue declared.")
-            print("Waiting for messages...")
+            print("STEP 4 - Queue declared")
 
             on_message_callback = lambda ch, method, properties, body: process_message(
                 ch, method, properties, body, app
@@ -109,15 +105,24 @@ def start_consuming(app: Flask):
 
             channel.basic_consume(
                 queue=RABBITMQ_QUEUE,
-                on_message_callback=on_message_callback
+                on_message_callback=on_message_callback,
+                auto_ack=False
             )
+            print("STEP 5 - Consumer registered")
 
+            print("STEP 6 - Starting consume")
             channel.start_consuming()
 
-        except Exception as e:
-            print(f"Consumer exception: {repr(e)}")
-            import traceback
-            traceback.print_exc()
+            print("STEP 7 - Returned from consuming")
 
-            import time
+        except Exception as e:
+            import traceback
+
+            print("=" * 80)
+            print("EXCEPTION")
+            print(type(e))
+            print(repr(e))
+            traceback.print_exc()
+            print("=" * 80)
+
             time.sleep(5)

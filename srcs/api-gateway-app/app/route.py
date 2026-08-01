@@ -116,6 +116,10 @@ def server(path:str):
         print(f"DEBUG: Forwarding request to: http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}")
         return proxy_request(f"http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}")
     elif path.startswith("api/billing"):
+        if request.method == "GET":
+            return proxy_request(
+                f"http://{Config.BILLING_APP_HOST}:{Config.BILLING_PORT}/{path}"
+            )
         print(f"DEBUG: Forwarding request to: http://{Config.BILLING_APP_HOST}:{Config.BILLING_PORT}/{path}")
         return billing_service(path)
     else:
