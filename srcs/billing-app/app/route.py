@@ -81,7 +81,7 @@ def start_consuming(app: Flask):
             channel.queue_declare(
                 queue=RABBITMQ_QUEUE,
                 durable=True,
-                arguments={'x-queue-type': 'quorum'}
+                arguments={"x-queue-type": "quorum"}
             )
 
             print("Connected! Waiting for messages...")
@@ -92,11 +92,15 @@ def start_consuming(app: Flask):
 
             channel.basic_consume(
                 queue=RABBITMQ_QUEUE,
-                on_message_callback=on_message_callback
+                on_message_callback=on_message_callback,
+                auto_ack=False
             )
+            print("STEP 5 - Consumer registered")
 
             # Blocking call: listens for messages continuously
             channel.start_consuming()
+
+            print("STEP 7 - Returned from consuming")
 
         except Exception as e:
             print(f"Consumer disconnected or failed to start: {e}. Retrying in 5s...")
