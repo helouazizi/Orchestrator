@@ -1,34 +1,75 @@
-from flask import request,Response,jsonify,Blueprint
-from .config import Config
-import requests
+import time
 import pika
+import requests
+from flask import request, Response, jsonify, Blueprint
+from .config import Config
 
-services_bp= Blueprint("services_bp",__name__)
+services_bp = Blueprint("services_bp", __name__)
 
-def proxy_request(url:str):
-    try:
-        headers = {}
-        for key, value in request.headers:
-            if key != "Host":
-                headers[key] = value        
-        resp=requests.request(
-            method=request.method,
-            url=url,
-            headers=headers,
-            params=request.args,
-            data=request.data,
-            cookies=request.cookies,
-            allow_redirects=False
-        )
-        response = Response(resp.content, resp.status_code)
-        for key, value in resp.headers.items():
-            response.headers[key] = value
+def proxy_request(url: str, retries: int = 3, delay: float = 1.0):
+    headers = {k: v for k, v in request.headers if k.lower() != "host"}
 
-        return response
-    except requests.exceptions.ConnectionError :
-        return  jsonify({"message":"CONNECTION REFUSED"}),503
-    
-def billing_service(path):
+    for attempt in range(1, retries + 1):
+        try:
+            resp = requests.request(
+                method=request.method,
+                url=url,
+                headers=headers,
+                params=request.args,
+                data=request.get_data(),
+                cookies=request.cookies,
+                allow_redirects=False,
+                timeout=5
+            )
+            response = Response(resp.content, resp.status_code)
+            for k, v in resp.headers.items():
+                response.headers[k] = v
+            return response
+
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            print(f"Proxy attempt {attempt}/{retries} failed for {url}: {e}")
+            if attempt == retries:
+                return jsonify({"message": "SERVICE UNAVAILABLE"}), 503
+            time.sleep(delay)
+
+def publish_to_rabbitmq(body: bytes, retries: int = 3, delay: float = 1.0):
+    credentials = pika.PlainCredentials(
+        Config.RABBITMQ_DEFAULT_USER,
+        Config.RABBITMQ_DEFAULT_PASS
+    )
+    params = pika.ConnectionParameters(
+        host=Config.RABBITMQ_HOST,
+        port=int(Config.RABBITMQ_PORT),
+        credentials=credentials,
+        virtual_host=Config.RABBITMQ_DEFAULT_VHOST
+    )
+
+    for attempt in range(1, retries + 1):
+        try:
+            connection = pika.BlockingConnection(params)
+            channel = connection.channel()
+
+            channel.queue_declare(
+                queue=Config.RABBITMQ_QUEUE,
+                durable=True,
+                arguments={"x-queue-type": "quorum"}
+            )
+
+            channel.basic_publish(
+                exchange="",
+                routing_key=Config.RABBITMQ_QUEUE,
+                body=body
+            )
+            connection.close()
+            return True
+
+        except Exception as e:
+            print(f"RabbitMQ publish attempt {attempt}/{retries} failed: {e}")
+            if attempt == retries:
+                raise e
+            time.sleep(delay)
+
+def billing_service(path: str):
     if request.method == "GET":
         target_url = f"http://{Config.BILLING_APP_HOST}:{Config.BILLING_PORT}/{path}"
         return proxy_request(target_url)
@@ -43,86 +84,22 @@ def billing_service(path):
             return jsonify({"message": f"{field} is required."}), 400
 
     try:
-        print("========== RabbitMQ Debug ==========")
-        print(f"Host      : {Config.RABBITMQ_HOST}")
-        print(f"Port      : {Config.RABBITMQ_PORT}")
-        print(f"User      : {Config.RABBITMQ_DEFAULT_USER}")
-        print(f"VHost     : {Config.RABBITMQ_DEFAULT_VHOST}")
-        print(f"Queue     : {Config.RABBITMQ_QUEUE}")
-        print("Resolving host...")
-
-        import socket
-
-        try:
-            ip = socket.gethostbyname(Config.RABBITMQ_HOST)
-            print(f"Resolved IP: {ip}")
-        except Exception as e:
-            print(f"DNS Resolution FAILED: {e}")
-            raise
-
-        credential = pika.PlainCredentials(
-            Config.RABBITMQ_DEFAULT_USER,
-            Config.RABBITMQ_DEFAULT_PASS
-        )
-
-        params = pika.ConnectionParameters(
-            host=Config.RABBITMQ_HOST,
-            port=int(Config.RABBITMQ_PORT),
-            credentials=credential,
-            virtual_host=Config.RABBITMQ_DEFAULT_VHOST
-        )
-
-        print("Opening RabbitMQ connection...")
-        connection = pika.BlockingConnection(params)
-        print("Connection established.")
-
-        channel = connection.channel()
-        print("Channel created.")
-
-        channel.queue_declare(
-            queue=Config.RABBITMQ_QUEUE,
-            durable=True,
-            arguments={"x-queue-type": "quorum"}
-        )
-        print("Queue declared.")
-
-        channel.basic_publish(
-            exchange="",
-            routing_key=Config.RABBITMQ_QUEUE,
-            body=request.get_data()
-        )
-        print("Message published.")
-
-        connection.close()
-        print("Connection closed.")
-        print("====================================")
-
+        publish_to_rabbitmq(request.get_data())
         return jsonify({"message": "message added to queue successfully"}), 200
-
     except Exception as e:
-        import traceback
+        return jsonify({"error": f"Could not queue billing request: {str(e)}"}), 503
 
-        print("========== RabbitMQ ERROR ==========")
-        traceback.print_exc()
-        print("====================================")
-
-        return jsonify({
-            "error": f"Could not queue billing request: {str(e)}"
-        }), 503   
-    
-@services_bp.route("/<path:path>",methods=["GET","POST","DELETE","PUT"])
-def server(path:str):
+@services_bp.route("/<path:path>", methods=["GET", "POST", "DELETE", "PUT"])
+def server(path: str):
     if path.startswith("api/movies"):
-        print(f"DEBUG: Forwarding request to: http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}")
-        return proxy_request(f"http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}")
+        target_url = f"http://{Config.INVENTORY_APP_HOST}:{Config.INVENTORY_PORT}/{path}"
+        return proxy_request(target_url)
+
     elif path.startswith("api/billing"):
-        print(f"DEBUG: Forwarding request to: http://{Config.BILLING_APP_HOST}:{Config.BILLING_PORT}/{path}")
         return billing_service(path)
-    else:
-        return jsonify({"message":"SERVICE NOT FOUND"}), 404     
-    
+
+    return jsonify({"message": "SERVICE NOT FOUND"}), 404
+
 @services_bp.route("/health", methods=["GET"])
 def health():
-    return jsonify({
-        "status": "UP"
-    }), 200
+    return jsonify({"status": "UP"}), 200

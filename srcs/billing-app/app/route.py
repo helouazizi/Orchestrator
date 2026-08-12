@@ -1,16 +1,13 @@
-import pika
 import os
 import json
+import time
+import pika
 from dotenv import load_dotenv
 from flask import Flask, Blueprint, jsonify
-# Assuming db and BillingOrder model are defined in app/models.py
 from .models import db, BillingOrder
-
 
 billing_bp = Blueprint("billing", __name__)
 
-# Load environment variables (if not already loaded by create_app in __init__.py)
-# It's good practice to ensure they are loaded here too for robustness.
 basedir = os.path.abspath(os.path.dirname(__file__))
 dotenv_path = os.path.join(basedir, '../../../.env')
 load_dotenv(dotenv_path)
@@ -18,7 +15,6 @@ load_dotenv(dotenv_path)
 @billing_bp.route("/billing", methods=["GET"])
 def get_billing_orders():
     orders = BillingOrder.query.order_by(BillingOrder.id.desc()).all()
-
     return jsonify([
         {
             "id": order.id,
@@ -35,7 +31,6 @@ def process_message(ch, method, properties, body, app):
             order_data = json.loads(body)
             print(f" [x] Received billing order: {order_data}")
 
-            # Save to database
             new_order = BillingOrder(
                 user_id=order_data.get('user_id'),
                 number_of_items=order_data.get('number_of_items'),
@@ -47,32 +42,22 @@ def process_message(ch, method, properties, body, app):
 
             ch.basic_ack(method.delivery_tag)
         except json.JSONDecodeError:
-            print(f" [!] Failed to decode JSON from message: {body.decode()}")
-            ch.basic_nack(method.delivery_tag, requeue=False) # Don't re-queue malformed messages
+            print(f" [!] Malformed JSON message: {body.decode()}")
+            ch.basic_nack(method.delivery_tag, requeue=False)
         except Exception as e:
             print(f" [!] Error processing message: {e}")
-            # Optionally, nack the message if processing failed and you want it re-queued
-            ch.basic_nack(method.delivery_tag, requeue=True) # Re-queue for transient errors
-
+            db.session.rollback()
+            ch.basic_nack(method.delivery_tag, requeue=True)
 
 def start_consuming(app: Flask):
-    RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'rabbit-queue')
+    RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'rabbitmq')
     RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT', 5672))
     RABBITMQ_USER = os.getenv('RABBITMQ_DEFAULT_USER')
     RABBITMQ_PASS = os.getenv('RABBITMQ_DEFAULT_PASS')
     RABBITMQ_VHOST = os.getenv('RABBITMQ_DEFAULT_VHOST', '/')
     RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE', 'billing_queue')
 
-    print("========== BILLING CONSUMER ==========")
-    print(f"HOST  : {RABBITMQ_HOST}")
-    print(f"PORT  : {RABBITMQ_PORT}")
-    print(f"USER  : {RABBITMQ_USER}")
-    print(f"VHOST : {RABBITMQ_VHOST}")
-    print(f"QUEUE : {RABBITMQ_QUEUE}")
-    print("======================================")
-
     credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-
     parameters = pika.ConnectionParameters(
         host=RABBITMQ_HOST,
         port=RABBITMQ_PORT,
@@ -81,17 +66,17 @@ def start_consuming(app: Flask):
         heartbeat=600
     )
 
+    # Infinite reconnect loop handles transient startup delays (DNS, DB, RabbitMQ boot)
     while True:
         try:
-            print("Connecting to RabbitMQ...")
+            # 1. Verify DB connection is ready before connecting to RabbitMQ
+            with app.app_context():
+                db.session.execute(db.text("SELECT 1"))
 
+            # 2. Connect to RabbitMQ
+            print(f"Connecting to RabbitMQ at {RABBITMQ_HOST}:{RABBITMQ_PORT}...")
             connection = pika.BlockingConnection(parameters)
-
-            print("Connected!")
-
             channel = connection.channel()
-
-            print("Declaring queue...")
 
             channel.queue_declare(
                 queue=RABBITMQ_QUEUE,
@@ -99,8 +84,7 @@ def start_consuming(app: Flask):
                 arguments={'x-queue-type': 'quorum'}
             )
 
-            print("Queue declared.")
-            print("Waiting for messages...")
+            print("Connected! Waiting for messages...")
 
             on_message_callback = lambda ch, method, properties, body: process_message(
                 ch, method, properties, body, app
@@ -111,12 +95,9 @@ def start_consuming(app: Flask):
                 on_message_callback=on_message_callback
             )
 
+            # Blocking call: listens for messages continuously
             channel.start_consuming()
 
         except Exception as e:
-            print(f"Consumer exception: {repr(e)}")
-            import traceback
-            traceback.print_exc()
-
-            import time
+            print(f"Consumer disconnected or failed to start: {e}. Retrying in 5s...")
             time.sleep(5)
